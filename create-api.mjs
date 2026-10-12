@@ -12,10 +12,10 @@ import * as fields from "./data/fields/_module.mjs";
 export const API_VERSION = 1;
 
 /**
- * Merge a host's namespace into one the module owns. Members that are objects are merged; a class or function the module
- * already provides is not replaced.
- * @param {object} target  A namespace the module owns (a plain, extensible object).
- * @param {object} source  The host's namespace.
+ * Merge a namespace that a host or a module supplies into one of the API's. Members that are objects are merged; a class or
+ * function that is already there is not replaced.
+ * @param {object} target  A namespace of the API (a plain, extensible object).
+ * @param {object} source  The namespace being added.
  * @param {string} path    Where they are in the API, for the error message.
  */
 function mergeNamespace(target, source, path) {
@@ -32,8 +32,14 @@ function mergeNamespace(target, source, path) {
  * Members of the API that the host game system may not replace when it supplies its parts.
  */
 const RESERVED = new Set([
-  "version", "capabilities", "Registry", "deprecateMoved", "modules", "mixins", "tests", "provide"
+  "version", "capabilities", "Registry", "deprecateMoved", "modules", "mixins", "tests", "provide", "contribute"
 ]);
+
+/**
+ * Members the host supplies that are values, not namespaces: a module cannot add to them (they start out undefined, so
+ * they would otherwise look like a namespace that does not exist yet).
+ */
+const VALUES = new Set(["systemId", "cssNamespace"]);
 
 /* -------------------------------------------- */
 
@@ -64,6 +70,7 @@ export function createApi() {
   const surface = {
     version: API_VERSION,
     systemId: undefined,
+    cssNamespace: undefined,
     capabilities: {},
     Registry,
     // The host adds to these with `provide`; `data.fields` starts with the fields that need nothing from a game system
@@ -74,12 +81,32 @@ export function createApi() {
     tests: createTestRegistry(),
 
     /**
+     * Add to a namespace of the API, such as `applications`, from a module. The parts are merged into what is there, as
+     * the host's are; a class or function that is already there is not replaced, and a name this module owns is not a
+     * namespace. Call it while the module evaluates, so that every module after it finds the parts in place.
+     * @param {string} namespace  Name of the namespace; created when the API has none by that name.
+     * @param {object} parts      What to add.
+     */
+    contribute(namespace, parts) {
+      if ( (typeof namespace !== "string") || !namespace ) throw new Error("contribute needs the name of a namespace.");
+      if ( RESERVED.has(namespace) || VALUES.has(namespace) ) {
+        throw new Error(`contribute cannot add to the API member ${namespace}.`);
+      }
+      if ( !parts || (typeof parts !== "object") ) throw new Error(`contribute("${namespace}") needs an object of parts.`);
+      const existing = surface[namespace];
+      if ( existing === undefined ) surface[namespace] = { ...parts };
+      else if ( existing && (typeof existing === "object") ) mergeNamespace(existing, parts, namespace);
+      else throw new Error(`The API member ${namespace} is not a namespace that can be added to.`);
+    },
+
+    /**
      * Supply the game system's parts: its id, and whatever it provides (`config`, `registry`, `data`, `documents`,
      * `applications`, `utils`, ...), which are published as given. Called by the system while it loads, which is after
      * this module and before any ordinary module. `mixinBases` is the base data model per document name and
      * `mixinExclusionsSetting` names the world setting holding the mixin exclusions; neither is published.
      * @param {object} parts
      * @param {string} [parts.systemId]
+     * @param {string} [parts.cssNamespace]  The class the system's windows and tooltips carry for its theming.
      * @param {Record<string, Function>} [parts.mixinBases]
      * @param {string} [parts.mixinExclusionsSetting]
      * @internal

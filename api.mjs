@@ -8,6 +8,8 @@ import { MODULE } from "./module-info.mjs";
  * @property {Record<string, any>} capabilities
  * @property {{ EnhancedDataModel: any, fields: Record<string, any>, EnhancedItemDataModel?: any, EnhancedSparseDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
  * @property {{ EnhancedApplication?: any, EnhancedApplicationV2Mixin?: any, EnhancedDialog?: any, EnhancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, ItemListsMixin?: any, BaseConfigSheet?: any, inputs?: any, headerExtensions?: any, CreateDocumentDialog?: any, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
+ * @property {Function} contribute
+ * @property {string} [cssNamespace]
  * @property {Function} deprecateMoved
  * @property {{ register: Function, get: Function, has: Function, require: Function, findConfig: Function, [key: string]: any }} modules
  * @property {{ register: Function, registerModel: Function, [key: string]: any }} mixins

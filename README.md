@@ -31,10 +31,15 @@ world lists them in. The API starts with what this module provides: the module r
 registry, `Registry` and `deprecateMoved`. It is wrapped in the guard that warns about misspelled members, and mirrored
 on `game.system.api` at init.
 
-The game system then adds its own parts while it loads, by calling `enhancedApi.provide({ systemId, config, data, ... })`.
+The game system then adds its own parts while it loads, by calling `enhancedApi.provide({ systemId, cssNamespace, config, data, ... })`.
 That happens before any ordinary module runs, so modules find the API complete. `provide` cannot replace what this module
 owns. `bootstrap.mjs` creates the API and must stay the first import of `config.mjs`, because the module's own `api.mjs`
 reads `globalThis.enhancedApi` when it is evaluated.
+
+A module adds to a namespace of the API with `enhancedApi.contribute("applications", { ... })`, while it evaluates: the parts
+are merged into what is there, as the host's are, and a class or function that is already there is not replaced.
+Library modules run in the order the world lists them (alphabetical in practice), not in `requires` order, so a library
+module's id must sort after `enhanced-core`.
 
 Every other module's `api.mjs` does the same read and throws `enhanced-<name> needs the enhanced-core module` when the API
 is missing, instead of building a fallback.
