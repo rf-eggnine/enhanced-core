@@ -10,6 +10,8 @@ import EnhancedTypedDataField from "./type-data-field.mjs";
  * kind: new StringField({ required: true, blank: true, initial: "" }),
  * details: new KindDetailsField({ kinds: MetaKinds })
  * ```
+ *
+ * A change that sets the kind and the details together is cleaned with the model of the kind the document had before it.
  */
 export default class KindDetailsField extends EnhancedTypedDataField {
 
@@ -22,7 +24,7 @@ export default class KindDetailsField extends EnhancedTypedDataField {
 
   /**
    * The kind a document's source data has.
-   * @param {object} source  Source data of the document's system.
+   * @param {object} source  Source data of the document's system, the model this field belongs to.
    * @returns {string|undefined}
    */
   kindOf(source) {
@@ -40,7 +42,8 @@ export default class KindDetailsField extends EnhancedTypedDataField {
 
   /** @inheritDoc */
   _cleanType(value, options, _state) {
-    const type = this.kindOf(_state.source);
+    // While cleaning, `_state.source` is this field's own stored value; the model it belongs to is `modelSource`
+    const type = this.kindOf(_state.modelSource);
     return super._cleanType(value, options, { ..._state, [MODULE.id]: { ..._state[MODULE.id], type } });
   }
 
@@ -56,7 +59,7 @@ export default class KindDetailsField extends EnhancedTypedDataField {
 
   /** @inheritDoc */
   _migrate(value, options, _state) {
-    const type = this.kindOf(_state.source);
+    const type = this.kindOf(_state.modelSource);
     return super._migrate(value, options, { ..._state, [MODULE.id]: { ..._state[MODULE.id], type } });
   }
 }
