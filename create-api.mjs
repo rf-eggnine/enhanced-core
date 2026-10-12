@@ -1,0 +1,180 @@
+import { createMixinRegistry } from "./api-mixins.mjs";
+import { deprecateMoved, guard, resetWarnings } from "./api-guard.mjs";
+import { MODULE } from "./module-info.mjs";
+import Registry from "./registry.mjs";
+
+/**
+ * Neutral, versioned contract that feature modules code against. Published as `globalThis.enhancedApi` when this module
+ * loads and mirrored on `game.system.api` at init. Modules read capabilities from here instead of branching on the
+ * system id.
+ */
+export const API_VERSION = 1;
+
+/**
+ * Members of the API that the host game system may not replace when it supplies its parts.
+ */
+const RESERVED = new Set([
+  "version", "capabilities", "Registry", "deprecateMoved", "modules", "mixins", "tests", "provide"
+]);
+
+/* -------------------------------------------- */
+
+/**
+ * Build the API object. It starts with what this module provides; the game system adds its own parts with `provide`
+ * while it loads, before any ordinary module runs. Keep this surface small.
+ * @returns {object}
+ */
+export function createApi() {
+  /** Per-document-name base data models, filled by `provide`; the mixin registry reads it each time it needs one. */
+  const bases = {};
+  /** What `provide` has recorded for the world setting that holds the mixin exclusions. */
+  const host = {};
+
+  /**
+   * Mixin exclusions a world has chosen (mixin id to the types it must not touch), from the host's world setting.
+   * Empty until the setting is registered.
+   * @returns {Record<string, string[]>}
+   */
+  const exclusions = () => {
+    try {
+      return game.settings.get(host.systemId, host.mixinExclusionsSetting ?? "mixinExclusions") ?? {};
+    } catch {
+      return {};
+    }
+  };
+
+  const surface = {
+    version: API_VERSION,
+    systemId: undefined,
+    capabilities: {},
+    Registry,
+    deprecateMoved,
+    modules: createModuleRegistry(),
+    mixins: createMixinRegistry({ bases, exclusions }),
+    tests: createTestRegistry(),
+
+    /**
+     * Supply the game system's parts: its id, and whatever it provides (`config`, `registry`, `data`, `documents`,
+     * `applications`, `utils`, ...), which are published as given. Called by the system while it loads, which is after
+     * this module and before any ordinary module. `mixinBases` is the base data model per document name and
+     * `mixinExclusionsSetting` names the world setting holding the mixin exclusions; neither is published.
+     * @param {object} parts
+     * @param {string} [parts.systemId]
+     * @param {Record<string, Function>} [parts.mixinBases]
+     * @param {string} [parts.mixinExclusionsSetting]
+     * @internal
+     */
+    provide({ systemId, mixinBases, mixinExclusionsSetting, ...rest }={}) {
+      const reserved = Object.keys(rest).filter(key => RESERVED.has(key));
+      if ( reserved.length ) throw new Error(`The host cannot replace API members: ${reserved.join(", ")}.`);
+      host.systemId = systemId;
+      host.mixinExclusionsSetting = mixinExclusionsSetting;
+      Object.assign(bases, mixinBases);
+      Object.assign(surface, { systemId }, rest);
+    }
+  };
+  return guard("enhancedApi", surface);
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Modules publish their own API here, and dependents read it here: no module imports another module's files.
+ * Registered at module evaluation (load order follows `relationships.requires`) and mirrored on
+ * `game.modules.get(id).api` at init, which is Foundry's convention. The store is a `Registry`; `require` and
+ * `findConfig` read it but are not part of it. Its ready hook (`enhanced-core.modules.ready`) fires at init, after the
+ * mirroring, so a listener sees every module's API. The registry is locked from then on: a module must publish while
+ * it loads, and one that publishes later gets an error naming it, since its API would never be mirrored.
+ * @returns {{register: Function, get: Function, has: Function, require: Function, findConfig: Function}}
+ */
+function createModuleRegistry() {
+  const registry = new Registry({ module: MODULE, id: "modules", lockingBehavior: Registry.LockingBehavior.LockAtHook });
+  Hooks.once(registry.hook, () => {
+    for ( const [id, moduleApi] of registry.entries() ) {
+      const module = game.modules.get(id);
+      if ( module && !module.api ) module.api = moduleApi;
+    }
+  });
+  Hooks.once("init", () => registry.ready());
+  return {
+    /**
+     * Publish a module's API.
+     * @param {string} id          Module id.
+     * @param {object} moduleApi   The module's public surface.
+     */
+    register(id, moduleApi) {
+      registry.register(id, guard(id, moduleApi));
+    },
+
+    /**
+     * Read another module's API, if present.
+     * @param {string} id
+     * @returns {object|undefined}
+     */
+    get(id) {
+      return registry.get(id);
+    },
+
+    /**
+     * Is another module's API present?
+     * @param {string} id
+     * @returns {boolean}
+     */
+    has(id) {
+      return registry.has(id);
+    },
+
+    /**
+     * Find a vocabulary by config key in any published module config (own tables first is the caller's job).
+     * The first registered module that has the key wins.
+     * @param {string} key
+     * @returns {*}
+     */
+    findConfig(key) {
+      for ( const moduleApi of registry.values() ) {
+        if ( "config" in moduleApi && key in moduleApi.config ) return moduleApi.config[key];
+      }
+    },
+
+    /**
+     * Read another module's API, failing with a clear message when it is absent.
+     * @param {string} id
+     * @returns {object}
+     */
+    require(id) {
+      const moduleApi = registry.get(id);
+      if ( !moduleApi ) throw new Error(`Enhanced module "${id}" is required but has not published an API.`);
+      return moduleApi;
+    }
+  };
+}
+
+/* -------------------------------------------- */
+
+/**
+ * Forward test batches to Quench when it is installed; do nothing otherwise, so modules can always register.
+ * @returns {{register: Function}}
+ */
+function createTestRegistry() {
+  const queued = [];
+  Hooks.once("quenchReady", quench => {
+    for ( const args of queued.splice(0) ) quench.registerBatch(...args);
+  });
+  return {
+    /** Forget shown API warnings so a test can assert on them again. */
+    resetWarnings,
+
+    /**
+     * Register a Quench batch.
+     * @param {string} key       Batch key, conventionally `<module id>.<name>`.
+     * @param {Function} fn      Quench batch function, receives the Quench context.
+     * @param {object} [options] Quench batch options, e.g. `displayName`.
+     */
+    register(key, fn, options={}) {
+      if ( globalThis.quench ) globalThis.quench.registerBatch(key, fn, options);
+      else queued.push([key, fn, options]);
+    }
+  };
+}
+
+/* -------------------------------------------- */

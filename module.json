@@ -1,0 +1,17 @@
+{
+  "id": "enhanced-core",
+  "title": "Enhanced Core",
+  "description": "The shared groundwork Enhanced modules rely on: it builds and publishes the neutral API (enhancedApi) that modules code against, and holds the capabilities modules declare for each other.",
+  "version": "0.0.1",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "relationships": {
+    "requires": []
+  },
+  "esmodules": [
+    "config.mjs"
+  ],
+  "library": true
+}
