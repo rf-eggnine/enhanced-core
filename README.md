@@ -89,6 +89,33 @@ settles once every module has published. It never throws; use `require` for a mo
 `LockAtHook`: publish while your module loads, because `modules.register` after init
 throws, naming the module.
 
+## Kinds
+
+`api.KindRegistry` is a `Registry` of the kinds of something: the kinds of aspect, of meta-actor, of activity. A kind is
+named `<module id>.<name>`, so two modules never claim the same one, and has a `label` (a localization key) and, when what it
+describes has data of its own, a `dataModel`. Anything else in the definition is kept for the owner. The owner makes the
+registry and the modules that define a kind register it:
+
+```js
+const metaKinds = new api.KindRegistry({ module: MODULE, id: "meta-kinds" });
+metaKinds.register("enhanced-factions.faction", { label: "FACTIONS.Faction", dataModel: FactionData });
+```
+
+| Member | Does |
+|---|---|
+| `getModel(kind)` | The kind's data model, or `null`. |
+| `label(kind)` | The label in the player's language, or an empty string. |
+| `choices()` | The kinds as `{ value, label }` options for a select, in registration order. |
+
+`api.data.fields.KindDetailsField` holds the data of a document's kind. It reads the kind from a sibling property (`kind`, or the
+one named by `kindKey`) and uses the kind's data model from the registry (`kinds`). A kind that is not registered keeps its
+details as a plain object, so a world that loses a module loses no data:
+
+```js
+kind: new StringField({ required: true, blank: true, initial: "" }),
+details: new KindDetailsField({ kinds: metaKinds })
+```
+
 ## Hook names
 
 A hook is named for the module that fires it: `<module id>.<name>`. A module writes `${MODULE.hooks}.name` (its id), core's

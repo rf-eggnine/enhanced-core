@@ -1,6 +1,7 @@
 import { createMixinRegistry } from "./api-mixins.mjs";
 import { deprecateMoved, guard, resetWarnings } from "./api-guard.mjs";
 import { MODULE } from "./module-info.mjs";
+import KindRegistry from "./kind-registry.mjs";
 import Registry from "./registry.mjs";
 import * as fields from "./data/fields/_module.mjs";
 
@@ -32,7 +33,7 @@ function mergeNamespace(target, source, path) {
  * Members of the API that the host game system may not replace when it supplies its parts.
  */
 const RESERVED = new Set([
-  "version", "capabilities", "Registry", "deprecateMoved", "modules", "mixins", "tests", "provide", "contribute"
+  "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "modules", "mixins", "tests", "provide", "contribute"
 ]);
 
 /**
@@ -73,6 +74,7 @@ export function createApi() {
     cssNamespace: undefined,
     capabilities: {},
     Registry,
+    KindRegistry,
     // The host adds to these with `provide`; `data.fields` starts with the fields that need nothing from a game system
     data: { fields: { ...fields } },
     deprecateMoved,
