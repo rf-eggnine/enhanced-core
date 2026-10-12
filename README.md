@@ -83,3 +83,19 @@ that. The `lockingBehavior` option, one of `Registry.LockingBehavior`, says what
 settles once every module has published. It never throws; use `require` for a module you cannot work without. It uses
 `LockAtHook`: publish while your module loads, because `modules.register` after init
 throws, naming the module.
+
+## Data fields
+
+`api.data.fields` starts with the fields that need nothing from a game system, which live in `data/fields/`:
+
+| Field | Is |
+|---|---|
+| `MappingField` | an object of keys to one kind of field, with initial keys and per-key labels |
+| `FormulaField` | a dice formula (optionally dice-free), with the effect-change operations |
+| `LocalDocumentField` | a reference by id to a document embedded in the same document |
+| `EnhancedTypedDataField` | an object whose model is chosen by its type, falling back to a plain object |
+
+The game system adds what needs its own elements and tools (`FiltersField`) to the same namespace with `provide`, which
+merges its namespaces into this module's and refuses to replace a class or function this module provides. Fields that come
+with an input element are not here: the identifier field and its input are in the `enhanced-fields` module, which requires
+this one.

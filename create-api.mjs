@@ -2,6 +2,7 @@ import { createMixinRegistry } from "./api-mixins.mjs";
 import { deprecateMoved, guard, resetWarnings } from "./api-guard.mjs";
 import { MODULE } from "./module-info.mjs";
 import Registry from "./registry.mjs";
+import * as fields from "./data/fields/_module.mjs";
 
 /**
  * Neutral, versioned contract that feature modules code against. Published as `globalThis.enhancedApi` when this module
@@ -9,6 +10,23 @@ import Registry from "./registry.mjs";
  * system id.
  */
 export const API_VERSION = 1;
+
+/**
+ * Merge a host's namespace into one the module owns. Members that are objects are merged; a class or function the module
+ * already provides is not replaced.
+ * @param {object} target  A namespace the module owns (a plain, extensible object).
+ * @param {object} source  The host's namespace.
+ * @param {string} path    Where they are in the API, for the error message.
+ */
+function mergeNamespace(target, source, path) {
+  for ( const [key, value] of Object.entries(source) ) {
+    const existing = target[key];
+    if ( existing === undefined ) target[key] = value;
+    else if ( (typeof existing === "object") && (typeof value === "object") && existing && value ) {
+      mergeNamespace(existing, value, `${path}.${key}`);
+    } else throw new Error(`The host cannot replace API member ${path}.${key}.`);
+  }
+}
 
 /**
  * Members of the API that the host game system may not replace when it supplies its parts.
@@ -48,6 +66,8 @@ export function createApi() {
     systemId: undefined,
     capabilities: {},
     Registry,
+    // The host adds to these with `provide`; `data.fields` starts with the fields that need nothing from a game system
+    data: { fields: { ...fields } },
     deprecateMoved,
     modules: createModuleRegistry(),
     mixins: createMixinRegistry({ bases, exclusions }),
@@ -70,7 +90,12 @@ export function createApi() {
       host.systemId = systemId;
       host.mixinExclusionsSetting = mixinExclusionsSetting;
       Object.assign(bases, mixinBases);
-      Object.assign(surface, { systemId }, rest);
+      surface.systemId = systemId;
+      for ( const [key, value] of Object.entries(rest) ) {
+        if ( (typeof surface[key] === "object") && surface[key] && (typeof value === "object") && value ) {
+          mergeNamespace(surface[key], value, key);
+        } else surface[key] = value;
+      }
     }
   };
   return guard("enhancedApi", surface);
