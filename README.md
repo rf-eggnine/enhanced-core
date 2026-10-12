@@ -136,7 +136,7 @@ fires under any other name.
 | `LocalDocumentField` | a reference by id to a document embedded in the same document |
 | `EnhancedTypedDataField` | an object whose model is chosen by its type, falling back to a plain object |
 
-The game system adds what needs its own elements and tools (`FiltersField`) to the same namespace with `provide`, which
-merges its namespaces into this module's and refuses to replace a class or function this module provides. Fields that come
-with an input element are not here: the identifier field and its input are in the `enhanced-fields` module, which requires
-this one.
+A game system or another module can add fields to the same namespace (`provide` for the system, `contribute` for a module),
+which merges them into this module's and refuses to replace a class or function this module provides. `KindDetailsField`, the
+field that holds the data of a document's kind, is here too. Fields that come with an input element are not here: the
+identifier field and the filters field, with their inputs, are in the `enhanced-fields` module.
