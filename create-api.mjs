@@ -85,7 +85,8 @@ export function createApi() {
  * `findConfig` read it but are not part of it. Its ready hook (`enhanced-core.modules.ready`) fires at init, after the
  * mirroring, so a listener sees every module's API. The registry is locked from then on: a module must publish while
  * it loads, and one that publishes later gets an error naming it, since its API would never be mirrored.
- * @returns {{register: Function, get: Function, has: Function, require: Function, findConfig: Function}}
+ * @returns {{register: Function, get: Function, has: Function, request: Function, require: Function,
+ *   findConfig: Function}}
  */
 function createModuleRegistry() {
   const registry = new Registry({ module: MODULE, id: "modules", lockingBehavior: Registry.LockingBehavior.LockAtHook });
@@ -96,6 +97,8 @@ function createModuleRegistry() {
     }
   });
   Hooks.once("init", () => registry.ready());
+  // Settles when publishing is over, after the mirroring above (its listener was added first)
+  const whenReady = new Promise(resolve => Hooks.once(registry.hook, () => resolve()));
   return {
     /**
      * Publish a module's API.
@@ -122,6 +125,18 @@ function createModuleRegistry() {
      */
     has(id) {
       return registry.has(id);
+    },
+
+    /**
+     * Ask for a module's API that is optional. Unlike `get`, the answer is final: it waits until every module has
+     * published (the registry's ready hook, at init), so a module that loads later is not mistaken for an absent one.
+     * Never throws; after init it resolves at once. Use `require` for a module that is needed.
+     * @param {string} id
+     * @returns {Promise<object|undefined>}  The module's API, or undefined when it published none.
+     */
+    async request(id) {
+      if ( !registry.isReady ) await whenReady;
+      return registry.get(id);
     },
 
     /**

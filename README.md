@@ -79,5 +79,7 @@ that. The `lockingBehavior` option, one of `Registry.LockingBehavior`, says what
 
 `api.modules`, where modules publish their own API, is built on a registry: `register`, `get` and `has` go straight to it, while
 `require` and `findConfig` read it. Its hook, `enhanced-core.modules.ready`, fires at init once every API is mirrored on
-`game.modules.get(id).api`. It uses `LockAtHook`: publish while your module loads, because `modules.register` after init
+`game.modules.get(id).api`. `api.modules.request(id)` is the graceful way to ask for an optional module: a promise for its API, or `undefined`, that
+settles once every module has published. It never throws; use `require` for a module you cannot work without. It uses
+`LockAtHook`: publish while your module loads, because `modules.register` after init
 throws, naming the module.

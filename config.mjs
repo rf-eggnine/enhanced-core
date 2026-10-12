@@ -1,8 +1,6 @@
 import "./bootstrap.mjs";
-import { api, MODULE, publish } from "./api.mjs";
-import apiLayerTests from "./tests/api-layer.mjs";
-import capabilitiesTests from "./tests/capabilities.mjs";
-import registryTests from "./tests/registry.mjs";
+import { api, publish } from "./api.mjs";
+import { createApi } from "./create-api.mjs";
 
 /**
  * Feature flags and defaults that modules declare for each other, instead of branching on the system id. A module that
@@ -22,8 +20,5 @@ function declare(capabilities) {
   return Object.assign(api.capabilities, capabilities);
 }
 
-publish({ capabilities: api.capabilities, declare });
-
-api.tests.register(`${MODULE.id}.capabilities`, capabilitiesTests, { displayName: "Enhanced Core: capabilities" });
-api.tests.register(`${MODULE.id}.api-layer`, apiLayerTests, { displayName: "Enhanced Core: API layer" });
-api.tests.register(`${MODULE.id}.registry`, registryTests, { displayName: "Enhanced Core: registry" });
+// `createApi` builds an API of its own, which the tests use to try the composition without touching the live one
+publish({ capabilities: api.capabilities, declare, createApi });
