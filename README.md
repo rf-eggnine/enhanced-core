@@ -84,6 +84,15 @@ settles once every module has published. It never throws; use `require` for a mo
 `LockAtHook`: publish while your module loads, because `modules.register` after init
 throws, naming the module.
 
+## Hook names
+
+A hook is named for the module that fires it: `<module id>.<name>`. A module writes `${MODULE.hooks}.name` (its id), core's
+registries use `<module id>.<registry id>.ready`, and the hooks of the window classes, which core will own, are
+`enhanced-core.prepareSheetContext` and `enhanced-core.prepareConfigSheetContext`. Listening to a hook is how one module
+answers another without importing it (the dice module adds the advantage options to configuration sheets this way). The
+game system's own lifecycle hook is `<system id>.ready`. `node utils/modulize.mjs <name> --check` reports a hook a module
+fires under any other name.
+
 ## Data fields
 
 `api.data.fields` starts with the fields that need nothing from a game system, which live in `data/fields/`:
