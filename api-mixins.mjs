@@ -195,14 +195,17 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
       return models[type];
     },
 
-    /** Called by the system once its own document classes are set; flushes queued document mixins. */
+    /**
+     * Called once the document classes are set: by the system when it sets its own, or by the core module at `i18nInit` if no one
+     * has by then. Flushes queued document mixins. Calling it again is harmless.
+     */
     ready() {
       isReady = true;
       for ( const [documentName, mixin] of queued.splice(0) ) wrapDocument(documentName, mixin);
     },
 
     /**
-     * Called by the system at `setup`, before any module's `setup` hook. World documents already exist, so this audits
+     * Called by the core module at `setup`, before any module's `setup` hook (a second call does nothing). World documents already exist, so this audits
      * and no longer applies data model mixins; it then applies the queued CONFIG path mixins.
      *
      * The audit covers every document with a data model mixin. A type that did not come through `registerModel`, or
@@ -211,6 +214,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      * A mixin aimed at one type that never appeared gets a warning too. Standalone types are skipped.
      */
     setup() {
+      if ( isSetUp ) return;
       isSetUp = true;
       const documentNames = new Set(modelMixins.map(entry => entry.documentName));
       for ( const documentName of documentNames ) {
