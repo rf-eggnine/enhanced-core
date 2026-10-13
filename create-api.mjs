@@ -197,12 +197,19 @@ function createModuleRegistry() {
      * Find a vocabulary by config key in any published module config (own tables first is the caller's job).
      * The first registered module that has the key wins.
      * @param {string} key
+     * @param {*} [defaultValue]  Returned when no module has the key, or the one that has it holds nothing (`null` or
+     *   `undefined`) there. Pass a fresh object at the call (`findConfig(key, {})`), not one kept and shared: a caller that
+     *   changes it would change it for everyone.
      * @returns {*}
      */
-    findConfig(key) {
+    findConfig(key, defaultValue = undefined) {
       for ( const moduleApi of registry.values() ) {
-        if ( "config" in moduleApi && key in moduleApi.config ) return moduleApi.config[key];
+        if ( "config" in moduleApi && key in moduleApi.config ) {
+          if ( defaultValue !== undefined ) return moduleApi.config[key] ?? defaultValue;
+          return moduleApi.config[key];
+        }
       }
+      if ( defaultValue !== undefined ) return defaultValue;
     },
 
     /**
