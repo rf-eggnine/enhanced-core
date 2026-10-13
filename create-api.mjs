@@ -77,6 +77,8 @@ export function createApi() {
     KindRegistry,
     // The host adds to these with `provide`; `data.fields` starts with the fields that need nothing from a game system
     data: { fields: { ...fields } },
+    // Empty until a module contributes (the ui module adds the application bases): on a minimal host there are none
+    applications: {},
     deprecateMoved,
     modules: createModuleRegistry(),
     mixins: createMixinRegistry({ bases, exclusions }),
