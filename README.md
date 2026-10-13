@@ -39,7 +39,11 @@ reads `globalThis.enhancedApi` when it is evaluated.
 A module adds to a namespace of the API with `enhancedApi.contribute("applications", { ... })`, while it evaluates: the parts
 are merged into what is there, as the host's are, and a class or function that is already there is not replaced.
 Library modules run in the order the world lists them (alphabetical in practice), not in `requires` order, so a library
-module's id must sort after `enhanced-core`.
+module's id must sort after `enhanced-core`. The same is true of ordinary modules, which run after the libraries: `requires` does
+not change the order of their scripts. A module may read another module's API while it loads only if that module sorts before
+it (a library, or an ordinary module with an earlier id); otherwise it reads it in the init hook, when every module has published
+(`enhanced-containers` sorts before `enhanced-items`, so it makes its model there). `modulize --check` reports a module that
+reads the API of a later module while it loads.
 
 Every other module's `api.mjs` does the same read and throws `enhanced-<name> needs the enhanced-core module` when the API
 is missing, instead of building a fallback.
