@@ -13,5 +13,12 @@
   "esmodules": [
     "config.mjs"
   ],
-  "library": true
+  "library": true,
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ]
 }

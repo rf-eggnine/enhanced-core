@@ -23,6 +23,15 @@ if ( itemType ) await Item.create({ name, type: itemType });
 | `capabilities` | The shared object, also at `enhancedApi.capabilities`. |
 | `declare(capabilities)` | Adds capabilities to it; a later declaration replaces an earlier one with the same key. |
 
+## Precedence
+
+A world setting (**Precedence**, in the settings of Enhanced Core) says who has the last word where the game system and the Enhanced
+modules both set the same thing, such as a class on `CONFIG`: `host`, the game system's own choice (the default), or `enhanced`.
+It is the module's own API, not the neutral one: `api.modules.require("enhanced-core")` has `PRECEDENCE`, `precedence()` and
+`enhancedHasPrecedence()`. A library module sets what it wants at `init`, which is before the system's, so the system wins by default;
+a module that can take its thing back does it at `setup` when `enhancedHasPrecedence()` is true. The ui module's drag and drop class
+does this. Reload to apply a change. It is one setting for all the modules for now.
+
 ## The API layer
 
 The module creates the API when it loads. It is a Foundry **library module** (`"library": true` in `module.json`), and

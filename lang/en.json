@@ -1,0 +1,6 @@
+{
+  "SETTINGS.ENHANCED_CORE.PRECEDENCE.Name": "Precedence",
+  "SETTINGS.ENHANCED_CORE.PRECEDENCE.Hint": "Who has the last word where the game system and the Enhanced modules both set the same thing, such as a class or a rule. The game system's own choices are kept by default; the Enhanced modules take over what they can when the other is chosen. Reload to apply.",
+  "SETTINGS.ENHANCED_CORE.PRECEDENCE.Host": "The game system's",
+  "SETTINGS.ENHANCED_CORE.PRECEDENCE.Enhanced": "The Enhanced modules'"
+}
