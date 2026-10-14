@@ -1,6 +1,7 @@
 import "./bootstrap.mjs";
 import { api, publish } from "./api.mjs";
 import { createApi } from "./create-api.mjs";
+import { mixinExclusions, registerMixinExclusionsSetting } from "./mixin-exclusions.mjs";
 import { enhancedHasPrecedence, PRECEDENCE, precedence, registerPrecedenceSetting } from "./precedence.mjs";
 
 /**
@@ -8,6 +9,8 @@ import { enhancedHasPrecedence, PRECEDENCE, precedence, registerPrecedenceSettin
  * provides a feature adds it here when it loads (`declare({ defaultItemType: "enhanced-items.item" })`); a module that
  * wants the feature reads it from `api.capabilities` and carries on without it when it is absent.
  *
+ * - `mixinExclusions()`: the world setting of the mixins a world has opted out of, `{ "<mixin id>": ["<type>", ...] }`, which the mixin
+ *   registry reads as each mixin is applied.
  * - `precedence()` and `enhancedHasPrecedence()`: the world setting that says who has the last word where the game system and
  *   the Enhanced modules both set the same thing, `PRECEDENCE.HOST` (the default) or `PRECEDENCE.ENHANCED`.
  *
@@ -25,7 +28,10 @@ function declare(capabilities) {
 }
 
 // `createApi` builds an API of its own, which the tests use to try the composition without touching the live one
-publish({ capabilities: api.capabilities, declare, createApi, PRECEDENCE, precedence, enhancedHasPrecedence });
+publish({ capabilities: api.capabilities, declare, createApi, PRECEDENCE, precedence, enhancedHasPrecedence, mixinExclusions });
 
 // A world setting: who has the last word where the game system and the Enhanced modules both set something
-Hooks.once("init", registerPrecedenceSetting);
+Hooks.once("init", () => {
+  registerPrecedenceSetting();
+  registerMixinExclusionsSetting();
+});

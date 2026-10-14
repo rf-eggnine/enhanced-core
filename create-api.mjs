@@ -1,6 +1,7 @@
 import { createMixinRegistry } from "./api-mixins.mjs";
 import { deprecateMoved, guard, resetWarnings } from "./api-guard.mjs";
 import { MODULE } from "./module-info.mjs";
+import { mixinExclusions } from "./mixin-exclusions.mjs";
 import KindRegistry from "./kind-registry.mjs";
 import Registry from "./registry.mjs";
 import * as fields from "./data/fields/_module.mjs";
@@ -52,21 +53,15 @@ const VALUES = new Set(["systemId", "cssNamespace"]);
 export function createApi() {
   /** Per-document-name base data models, filled by `provide`; the mixin registry reads it each time it needs one. */
   const bases = {};
-  /** What `provide` has recorded for the world setting that holds the mixin exclusions. */
+  /** What `provide` has recorded of the host. */
   const host = {};
 
   /**
-   * Mixin exclusions a world has chosen (mixin id to the types it must not touch), from the host's world setting.
+   * Mixin exclusions a world has chosen (mixin id to the types it must not touch), from this module's world setting.
    * Empty until the setting is registered.
    * @returns {Record<string, string[]>}
    */
-  const exclusions = () => {
-    try {
-      return game.settings.get(host.systemId, host.mixinExclusionsSetting ?? "mixinExclusions") ?? {};
-    } catch {
-      return {};
-    }
-  };
+  const exclusions = () => mixinExclusions();
 
   const surface = {
     version: API_VERSION,
@@ -106,8 +101,8 @@ export function createApi() {
     /**
      * Supply the game system's parts: its id, and whatever it provides (`config`, `registry`, `data`, `documents`,
      * `applications`, `utils`, ...), which are published as given. Called by the system while it loads, which is after
-     * this module and before any ordinary module. `mixinBases` is the base data model per document name and
-     * `mixinExclusionsSetting` names the world setting holding the mixin exclusions; neither is published.
+     * this module and before any ordinary module. `mixinBases` is the base data model per document name, and is not published.
+     * `mixinExclusionsSetting`, which named the host's world setting of mixin exclusions, is ignored: the setting is this module's.
      * @param {object} parts
      * @param {string} [parts.systemId]
      * @param {string} [parts.cssNamespace]  The class the system's windows and tooltips carry for its theming.
@@ -119,7 +114,11 @@ export function createApi() {
       const reserved = Object.keys(rest).filter(key => RESERVED.has(key));
       if ( reserved.length ) throw new Error(`The host cannot replace API members: ${reserved.join(", ")}.`);
       host.systemId = systemId;
-      host.mixinExclusionsSetting = mixinExclusionsSetting;
+      if ( mixinExclusionsSetting !== undefined ) {
+        // A host that still names its own setting is warned when the world is up; nothing here has the logger yet
+        Hooks.once("init", () => foundry.utils.logCompatibilityWarning("provide({ mixinExclusionsSetting }) is ignored: the mixin "
+          + "exclusions are the enhanced-core module's world setting.", { since: "0.1.0", until: 15, once: true }));
+      }
       Object.assign(bases, mixinBases);
       surface.systemId = systemId;
       for ( const [key, value] of Object.entries(rest) ) {

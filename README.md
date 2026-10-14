@@ -32,6 +32,12 @@ It is the module's own API, not the neutral one: `api.modules.require("enhanced-
 a module that can take its thing back does it at `setup` when `enhancedHasPrecedence()` is true. The ui module's drag and drop class
 does this. Reload to apply a change. It is one setting for all the modules for now.
 
+## Mixin exclusions
+
+The world setting `mixinExclusions` (`enhanced-core.mixinExclusions`, kept out of the settings screen) lists the mixins a world has opted
+out of, `{ "<mixin id>": ["<type>", ...] }`. The mixin registry, which is this module's, reads it as each mixin is applied. A host that
+still passes `mixinExclusionsSetting` to `provide` is warned and ignored.
+
 ## The API layer
 
 The module creates the API when it loads. It is a Foundry **library module** (`"library": true` in `module.json`), and
