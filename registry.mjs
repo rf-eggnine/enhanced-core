@@ -33,8 +33,10 @@ export default class Registry {
    * @param {(definition: any, key: string) => void} [options.validate]
    *   Called for each definition before it is stored; throw to reject it.
    * @param {string} [options.lockingBehavior="None"]       One of `Registry.LockingBehavior`.
+   * @param {boolean} [options.removable=false]             Whether `unregister` works. Most registries are only added to, so
+   *   removal is for the ones that say they track something that goes away (the documents that depend on an effect).
    */
-  constructor({ module, id, validate, lockingBehavior=Registry.LockingBehavior.None }={}) {
+  constructor({ module, id, validate, lockingBehavior=Registry.LockingBehavior.None, removable=false }={}) {
     if ( typeof module?.id !== "string" || !module.id ) throw new Error("A registry needs the module that owns it.");
     if ( typeof id !== "string" || !id ) throw new Error("A registry needs a non-empty string id.");
     if ( !Object.values(Registry.LockingBehavior).includes(lockingBehavior) ) {
@@ -45,6 +47,7 @@ export default class Registry {
     this.#id = id;
     this.#validate = validate;
     this.#lockingBehavior = lockingBehavior;
+    this.#removable = !!removable;
   }
 
   /* -------------------------------------------- */
@@ -59,6 +62,8 @@ export default class Registry {
   #validate;
 
   #lockingBehavior;
+
+  #removable;
 
   #ready = false;
 
@@ -105,6 +110,16 @@ export default class Registry {
   /* -------------------------------------------- */
 
   /**
+   * Whether `unregister` works on this registry.
+   * @type {boolean}
+   */
+  get removable() {
+    return this.#removable;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
    * Is the registry closed to new registrations? True from `ready()` on, for `LockAtHook` only.
    * @type {boolean}
    */
@@ -134,6 +149,22 @@ export default class Registry {
     this.#validate?.(definition, key);
     this.#definitions.set(key, definition);
     return this;
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Remove a definition. Only a registry made with `removable: true` allows it, and not once it is locked.
+   * @param {string} key
+   * @returns {boolean}  Whether there was a definition under the key.
+   * @throws {Error}  When the registry is not removable, or is locked.
+   */
+  unregister(key) {
+    if ( !this.#removable ) throw new Error(`Registry "${this.#id}" of ${this.#module} does not allow removal.`);
+    if ( this.isLocked ) {
+      throw new Error(`Registry "${this.#id}" of ${this.#module} is locked: "${key}" was removed after ${this.hook}.`);
+    }
+    return this.#definitions.delete(key);
   }
 
   /* -------------------------------------------- */
