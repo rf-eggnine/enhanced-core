@@ -52,14 +52,23 @@ export default class FormulaField extends foundry.data.fields.StringField {
   /*  Active Effect Integration                   */
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * A formula keeps its `@` references: they are resolved when it is rolled, not when the effect is applied.
+   * Unlike the base class this never calls `_replaceDataRefs`, so `replacementData` goes unused.
+   * @override
+   */
   _castChangeDelta(delta, replacementData={}) {
     return this._cast(delta).trim();
   }
 
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * Join the delta to the formula with `+`, or with `-` when the delta starts with `-`: "1d8" and "+ 1d4" make
+   * "1d8 + 1d4", "1d8" and "-2" make "1d8 - 2". Only the leading sign of the delta is taken as the operator. An empty
+   * formula becomes the delta as it is.
+   * @override
+   */
   _applyChangeAdd(value, delta, model, change) {
     if ( !value ) return delta;
     const operator = delta.startsWith("-") ? "-" : "+";
@@ -69,7 +78,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
 
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * Take the delta from the formula, in parentheses so that a delta of several terms is taken whole: "1d8" and
+   * "1d4 + 1" make "1d8 - (1d4 + 1)". From an empty formula the result is the negated delta.
+   * @override
+   */
   _applyChangeSubtract(value, delta, model, change) {
     if ( !value ) return `-(${delta})`;
     return `${value} - (${delta})`;
@@ -77,7 +90,12 @@ export default class FormulaField extends foundry.data.fields.StringField {
 
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * Multiply the formula by the delta, each in parentheses when it has more than one term: "1d8 + 2" and "2" make
+   * "(1d8 + 2) * 2". The result multiplies what the formula rolls; it does not multiply the number of dice. An empty
+   * formula stays empty.
+   * @override
+   */
   _applyChangeMultiply(value, delta, model, change) {
     if ( !value ) return value;
     if ( new Roll(value).terms.length > 1 ) value = `(${value})`;
@@ -87,7 +105,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
 
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * Keep the higher of the formula and the delta: "1d8" and "3" make "max(1d8, 3)". A formula that already is one
+   * `max(...)` takes the delta as a further argument. An empty formula becomes the delta.
+   * @override
+   */
   _applyChangeUpgrade(value, delta, model, change) {
     if ( !value ) return delta;
     const terms = new Roll(value).terms;
@@ -97,7 +119,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
 
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * Keep the lower of the formula and the delta: "1d8" and "3" make "min(1d8, 3)". A formula that already is one
+   * `min(...)` takes the delta as a further argument. An empty formula becomes the delta.
+   * @override
+   */
   _applyChangeDowngrade(value, delta, model, change) {
     if ( !value ) return delta;
     const terms = new Roll(value).terms;
