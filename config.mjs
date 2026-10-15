@@ -1,5 +1,6 @@
 import "./bootstrap.mjs";
 import { api, publish } from "./api.mjs";
+import { resetWarnings } from "./api-guard.mjs";
 import { createApi } from "./create-api.mjs";
 import { mixinExclusions, registerMixinExclusionsSetting } from "./mixin-exclusions.mjs";
 import { enhancedHasPrecedence, PRECEDENCE, precedence, registerPrecedenceSetting } from "./precedence.mjs";
@@ -27,9 +28,11 @@ function declare(capabilities) {
   return Object.assign(api.capabilities, capabilities);
 }
 
-// `createApi` builds an API of its own, which the tests use to try the composition without touching the live one
+// `createApi` builds an API of its own, which the tests use to try the composition without touching the live one, and
+// `resetWarnings` forgets the API warnings already shown, so a test can assert on them again
 publish({
-  capabilities: api.capabilities, declare, createApi, PRECEDENCE, precedence, enhancedHasPrecedence, mixinExclusions
+  capabilities: api.capabilities, declare, createApi, resetWarnings, PRECEDENCE, precedence, enhancedHasPrecedence,
+  mixinExclusions
 });
 
 // A world setting: who has the last word where the game system and the Enhanced modules both set something

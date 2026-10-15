@@ -16,7 +16,6 @@ import { MODULE } from "./module-info.mjs";
  * @property {{ register: Function, get: Function, has: Function, request: Function, require: Function, findConfig: Function, [key: string]: any }} modules
  * @property {{ register: Function, registerModel: Function, [key: string]: any }} mixins
  * @property {Function} contribute
- * @property {{ register: Function, resetWarnings: Function, [key: string]: any }} tests
  * @property {string} [systemId]
  * @property {string} [cssNamespace]
  * @property {Record<string, any>} [config]
