@@ -192,6 +192,11 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
       if ( model ) {
         const [, documentName, type] = model;
         const entry = { documentName, type, mixin, id, exclude: new Set(exclude), found: false };
+        if ( isSetUp ) {
+          warn(`mixins.register("${target}"): registered after setup, when the world's documents already exist. `
+            + "They keep the class they have, so the mixin reaches them unevenly. Register it during init.",
+          `late:${id}`);
+        }
         modelMixins.push(entry);
         applyEntry(entry);
         if ( isSetUp && !entry.found && (type !== "*") ) {
@@ -257,8 +262,9 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      * and no longer applies data model mixins; it then applies the queued CONFIG path mixins.
      *
      * The audit covers every document with a data model mixin. A type that did not come through `registerModel`, or
-     * was replaced after it did, gets a warning naming it: its mixins were not applied, and fixing that is the
-     * module's concern.
+     * was replaced after it did, gets a warning naming the mixins it lacks, and fixing that is the module's concern.
+     * A type that lacks none (its mixins came after a direct write, or the replacement extends the registered class)
+     * gets no warning.
      * A mixin aimed at one type that never appeared gets a warning too. Standalone types are skipped.
      */
     setup() {
@@ -270,11 +276,18 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
         for ( const type of Object.keys(models) ) {
           const id = key(documentName, type);
           if ( registered.get(id)?.standalone ) continue;
-          if ( !registered.has(id) ) {
-            warn(`${documentName} type "${type}" was set directly on CONFIG, so its mixins were not applied. `
+          const direct = !registered.has(id);
+          if ( !direct && (produced.get(id) === models[type]) ) continue;
+          // What the class on CONFIG lacks: a replacement that extends the registered class keeps its mixins
+          const missed = modelMixins.filter(entry => matches(entry, documentName, type)
+            && !isExcluded(entry, type) && !hasApplied(models[type], entry.id)).map(entry => entry.id);
+          if ( !missed.length ) continue;
+          const lacking = `the mixins ${missed.join(", ")}`;
+          if ( direct ) {
+            warn(`${documentName} type "${type}" was set directly on CONFIG, so ${lacking} were not applied. `
               + "Register it with mixins.registerModel.", `direct:${id}`);
-          } else if ( produced.get(id) !== models[type] ) {
-            warn(`${documentName} type "${type}" was replaced on CONFIG after it was registered, so its mixins `
+          } else {
+            warn(`${documentName} type "${type}" was replaced on CONFIG after it was registered, so ${lacking} `
               + "were lost.", `replaced:${id}`);
           }
         }
