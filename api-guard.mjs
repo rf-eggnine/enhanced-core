@@ -1,7 +1,7 @@
 /**
  * Guard rails for the neutral API, in the spirit of Foundry's own compatibility warnings: misuse is reported once
  * in most cases, except for setting a value to a deprecated location, which is always warned. Warnings contain a
- * pointer to the right call, instead of failing as a bare `undefined` later. 
+ * pointer to the right call, instead of failing as a bare `undefined` later.
  */
 
 const PREFIX = "Enhanced API |";
@@ -80,11 +80,14 @@ export function guard(name, surface) {
 }
 
 /**
- * When something was deprecated, or when its support ends. A module's own version and the versions of what it depends on are written apart, because a
- * module's version need not say anything about the Foundry it was made for, and a deprecation can follow another module's version.
+ * When something was deprecated, or when its support ends. A module's own version and the versions of what it depends
+ * on are written apart, because a module's version need not say anything about the Foundry it was made for, and a
+ * deprecation can follow another module's version.
  * @typedef {object} DeprecationVersion
- * @property {string|number} [module]  The version of the module that keeps the old shape working: `"1.0.1"`, or `2` for "version 2".
- * @property {Record<string, string|number>} [deps]  Versions of what it depends on, by id: `{ foundry: "13.200", "some-module": "2.2.1" }`. Foundry's own is under `foundry`.
+ * @property {string|number} [module]  The version of the module that keeps the old shape working: `"1.0.1"`, or `2` for
+ *   "version 2".
+ * @property {Record<string, string|number>} [deps]  Versions of what it depends on, by id: `{ foundry: "13.200",
+ *   "some-module": "2.2.1" }`. Foundry's own is under `foundry`.
  */
 
 const isVersion = value => ((typeof value === "string") && !!value.trim()) || ((typeof value === "number") && Number.isFinite(value));
@@ -126,13 +129,15 @@ function describeVersions({ module, deps }, { withFoundry=true }={}) {
 }
 
 /**
- * Warn that something is deprecated, through Foundry's compatibility warning (which the world's compatibility mode and patterns filter), with the versions
- * written as `{ module?, deps? }` (see `DeprecationVersion`). Foundry's own warning states the Foundry versions; the others are said in its details.
+ * Warn that something is deprecated, through Foundry's compatibility warning (which the world's compatibility mode and
+ * patterns filter), with the versions written as `{ module?, deps? }` (see `DeprecationVersion`). Foundry's own warning
+ * states the Foundry versions; the others are said in its details.
  * @param {string} message  What is deprecated, and what to use instead.
  * @param {object} options
  * @param {DeprecationVersion} options.since  When it was deprecated.
  * @param {DeprecationVersion} options.until  When it stops working.
- * @param {boolean} [options.once=true]  Warn once for each place in the code that reaches it (Foundry remembers the stack trace); `false` warns every time.
+ * @param {boolean} [options.once=true]  Warn once for each place in the code that reaches it (Foundry remembers the
+ *   stack trace); `false` warns every time.
  * @param {string} [options.details]  Further lines for the warning.
  */
 export function warnDeprecated(message, { since, until, once=true, details }={}) {
@@ -143,18 +148,22 @@ export function warnDeprecated(message, { since, until, once=true, details }={})
     describeVersions(end, { withFoundry: false }) && `Support ends in ${describeVersions(end, { withFoundry: false })}.`,
     details
   ].filter(Boolean).join(" ") || undefined;
-  foundry.utils.logCompatibilityWarning(message, { since: from.deps.foundry, until: end.deps.foundry, details: said, once });
+  foundry.utils.logCompatibilityWarning(message, {
+    since: from.deps.foundry, until: end.deps.foundry, details: said, once
+  });
 }
 
 /**
- * Keep an old config location working while warning that it moved, via `warnDeprecated`. Reading it warns once for each place in the code that reads it; writing it
- * warns every time, because a value written to the old place is not read from the new one unless `set` forwards it, which is a bug to find and not noise to hide.
+ * Keep an old config location working while warning that it moved, via `warnDeprecated`. Reading it warns once for each
+ * place in the code that reads it; writing it warns every time, because a value written to the old place is not read
+ * from the new one unless `set` forwards it, which is a bug to find and not noise to hide.
  * @param {object} holder            Object that used to hold the value, e.g. the system config.
  * @param {string} key               Old property name.
  * @param {object} options
  * @param {string} options.to        Human-readable new location, e.g. `api.modules.require(id).config.abilities`.
  * @param {Function} options.get     Returns the current value.
- * @param {Function} [options.set]   Receives a value written to the old place and stores it in the new one. Without it, the write is warned about and not kept.
+ * @param {Function} [options.set]   Receives a value written to the old place and stores it in the new one. Without it,
+ *   the write is warned about and not kept.
  * @param {DeprecationVersion} options.since  When the old place was deprecated.
  * @param {DeprecationVersion} options.until  When it stops working.
  */

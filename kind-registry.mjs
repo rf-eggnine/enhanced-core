@@ -46,7 +46,8 @@ export default class KindRegistry extends Registry {
   /**
    * The data model of a kind.
    * @param {string} kind
-   * @returns {typeof foundry.abstract.DataModel|null}  Null for a kind that is not registered or has no data of its own.
+   * @returns {typeof foundry.abstract.DataModel|null}  Null for a kind that is not registered or has no data of its
+   *   own.
    */
   getModel(kind) {
     return this.get(kind)?.dataModel ?? null;

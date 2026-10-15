@@ -14,8 +14,8 @@ import * as fields from "./data/fields/_module.mjs";
 export const API_VERSION = 1;
 
 /**
- * Merge a namespace that a host or a module supplies into one of the API's. Members that are objects are merged; a class or
- * function that is already there is not replaced.
+ * Merge a namespace that a host or a module supplies into one of the API's. Members that are objects are merged; a
+ * class or function that is already there is not replaced.
  * @param {object} target  A namespace of the API (a plain, extensible object).
  * @param {object} source  The namespace being added.
  * @param {string} path    Where they are in the API, for the error message.
@@ -102,8 +102,9 @@ export function createApi() {
     /**
      * Supply the game system's parts: its id, and whatever it provides (`config`, `registry`, `data`, `documents`,
      * `applications`, `utils`, ...), which are published as given. Called by the system while it loads, which is after
-     * this module and before any ordinary module. `mixinBases` is the base data model per document name, and is not published.
-     * `mixinExclusionsSetting`, which named the host's world setting of mixin exclusions, is ignored: the setting is this module's.
+     * this module and before any ordinary module. `mixinBases` is the base data model per document name, and is not
+     * published. `mixinExclusionsSetting`, which named the host's world setting of mixin exclusions, is ignored: the
+     * setting is this module's.
      * @param {object} parts
      * @param {string} [parts.systemId]
      * @param {string} [parts.cssNamespace]  The class the system's windows and tooltips carry for its theming.
@@ -200,8 +201,8 @@ function createModuleRegistry() {
      * The first registered module that has the key wins.
      * @param {string} key
      * @param {*} [defaultValue]  Returned when no module has the key, or the one that has it holds nothing (`null` or
-     *   `undefined`) there. Pass a fresh object at the call (`findConfig(key, {})`), not one kept and shared: a caller that
-     *   changes it would change it for everyone.
+     *   `undefined`) there. Pass a fresh object at the call (`findConfig(key, {})`), not one kept and shared: a caller
+     *   that changes it would change it for everyone.
      * @returns {*}
      */
     findConfig(key, defaultValue = undefined) {

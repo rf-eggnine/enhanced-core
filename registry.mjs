@@ -33,8 +33,9 @@ export default class Registry {
    * @param {(definition: any, key: string) => void} [options.validate]
    *   Called for each definition before it is stored; throw to reject it.
    * @param {string} [options.lockingBehavior="None"]       One of `Registry.LockingBehavior`.
-   * @param {boolean} [options.removable=false]             Whether `unregister` works. Most registries are only added to, so
-   *   removal is for the ones that say they track something that goes away (the documents that depend on an effect).
+   * @param {boolean} [options.removable=false]             Whether `unregister` works. Most registries are only added
+   *   to, so removal is for the ones that say they track something that goes away (the documents that depend on an
+   *   effect).
    */
   constructor({ module, id, validate, lockingBehavior=Registry.LockingBehavior.None, removable=false }={}) {
     if ( typeof module?.id !== "string" || !module.id ) throw new Error("A registry needs the module that owns it.");

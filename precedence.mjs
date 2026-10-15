@@ -1,8 +1,8 @@
 import { MODULE } from "./module-info.mjs";
 
 /**
- * Who has the last word where the game system and the Enhanced modules both set the same thing (a class on `CONFIG`, a rule): the
- * system, which is what a system's author expects, or the Enhanced modules.
+ * Who has the last word where the game system and the Enhanced modules both set the same thing (a class on `CONFIG`, a
+ * rule): the system, which is what a system's author expects, or the Enhanced modules.
  * @enum {string}
  */
 export const PRECEDENCE = Object.freeze({ HOST: "host", ENHANCED: "enhanced" });
@@ -30,9 +30,9 @@ export function registerPrecedenceSetting() {
 }
 
 /**
- * Who has precedence in this world: the game system's own choices (the default), or the Enhanced modules'. A module that
- * puts something on `CONFIG` before the system does, or that has a rule the system also has, asks this before deciding who gives
- * way. Before the setting is registered (before `init` ends) the answer is the default.
+ * Who has precedence in this world: the game system's own choices (the default), or the Enhanced modules'. A module
+ * that puts something on `CONFIG` before the system does, or that has a rule the system also has, asks this before
+ * deciding who gives way. Before the setting is registered (before `init` ends) the answer is the default.
  * @returns {string}  One of `PRECEDENCE`.
  */
 export function precedence() {

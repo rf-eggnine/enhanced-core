@@ -249,8 +249,8 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     },
 
     /**
-     * Called once the document classes are set: by the system when it sets its own, or by the core module at `i18nInit` if no one
-     * has by then. Flushes queued document mixins. Calling it again is harmless.
+     * Called once the document classes are set: by the system when it sets its own, or by the core module at `i18nInit`
+     * if no one has by then. Flushes queued document mixins. Calling it again is harmless.
      */
     ready() {
       isReady = true;
@@ -258,8 +258,9 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     },
 
     /**
-     * Called by the core module at `setup`, before any module's `setup` hook (a second call does nothing). World documents already exist, so this audits
-     * and no longer applies data model mixins; it then applies the queued CONFIG path mixins.
+     * Called by the core module at `setup`, before any module's `setup` hook (a second call does nothing). World
+     * documents already exist, so this audits and no longer applies data model mixins; it then applies the queued
+     * CONFIG path mixins.
      *
      * The audit covers every document with a data model mixin. A type that did not come through `registerModel`, or
      * was replaced after it did, gets a warning naming the mixins it lacks, and fixing that is the module's concern.

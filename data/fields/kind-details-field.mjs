@@ -11,7 +11,8 @@ import EnhancedTypedDataField from "./type-data-field.mjs";
  * details: new KindDetailsField({ kinds: MetaKinds })
  * ```
  *
- * A change that sets the kind and the details together is cleaned with the model of the kind the document had before it.
+ * A change that sets the kind and the details together is cleaned with the model of the kind the document had before
+ * it.
  */
 export default class KindDetailsField extends EnhancedTypedDataField {
 
