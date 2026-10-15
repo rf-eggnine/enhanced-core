@@ -90,7 +90,8 @@ export function guard(name, surface) {
  *   "some-module": "2.2.1" }`. Foundry's own is under `foundry`.
  */
 
-const isVersion = value => ((typeof value === "string") && !!value.trim()) || ((typeof value === "number") && Number.isFinite(value));
+const isVersion = value => ((typeof value === "string") && !!value.trim())
+  || ((typeof value === "number") && Number.isFinite(value));
 
 /**
  * Check a `since` or `until` and read it. At least one version is needed, so a deprecation always says when.
@@ -99,15 +100,22 @@ const isVersion = value => ((typeof value === "string") && !!value.trim()) || ((
  * @returns {{ module?: string|number, deps: Record<string, string|number> }}
  */
 export function readDeprecationVersion(name, spec) {
-  const shape = `\`${name}\` is { module?: version, deps?: { <id>: version } }, such as { module: "1.0.1", deps: { foundry: 15 } }`;
+  const shape = `\`${name}\` is { module?: version, deps?: { <id>: version } }, `
+    + "such as { module: \"1.0.1\", deps: { foundry: 15 } }";
   if ( !spec || (typeof spec !== "object") ) throw new Error(`deprecateMoved needs ${name}: ${shape}.`);
   const { module, deps = {} } = spec;
-  if ( (module !== undefined) && !isVersion(module) ) throw new Error(`deprecateMoved: ${name}.module is not a version: ${shape}.`);
-  if ( !deps || (typeof deps !== "object") ) throw new Error(`deprecateMoved: ${name}.deps is not an object of versions: ${shape}.`);
+  if ( (module !== undefined) && !isVersion(module) ) {
+    throw new Error(`deprecateMoved: ${name}.module is not a version: ${shape}.`);
+  }
+  if ( !deps || (typeof deps !== "object") ) {
+    throw new Error(`deprecateMoved: ${name}.deps is not an object of versions: ${shape}.`);
+  }
   for ( const [id, version] of Object.entries(deps) ) {
     if ( !isVersion(version) ) throw new Error(`deprecateMoved: ${name}.deps.${id} is not a version: ${shape}.`);
   }
-  if ( (module === undefined) && !Object.keys(deps).length ) throw new Error(`deprecateMoved: ${name} names no version: ${shape}.`);
+  if ( (module === undefined) && !Object.keys(deps).length ) {
+    throw new Error(`deprecateMoved: ${name} names no version: ${shape}.`);
+  }
   return { module, deps };
 }
 
@@ -143,9 +151,11 @@ function describeVersions({ module, deps }, { withFoundry=true }={}) {
 export function warnDeprecated(message, { since, until, once=true, details }={}) {
   const from = readDeprecationVersion("since", since);
   const end = readDeprecationVersion("until", until);
+  const deprecatedIn = describeVersions(from, { withFoundry: false });
+  const endsIn = describeVersions(end, { withFoundry: false });
   const said = [
-    describeVersions(from, { withFoundry: false }) && `Deprecated in ${describeVersions(from, { withFoundry: false })}.`,
-    describeVersions(end, { withFoundry: false }) && `Support ends in ${describeVersions(end, { withFoundry: false })}.`,
+    deprecatedIn && `Deprecated in ${deprecatedIn}.`,
+    endsIn && `Support ends in ${endsIn}.`,
     details
   ].filter(Boolean).join(" ") || undefined;
   foundry.utils.logCompatibilityWarning(message, {
@@ -179,7 +189,8 @@ export function deprecateMoved(holder, key, { to, get, set, since, until }) {
       return get();
     },
     set(value) {
-      warnDeprecated(`"${key}" moved to ${to}; ${set ? "the value was written there" : "the value written here was not kept"}.`, { since, until, once: false });
+      const kept = set ? "the value was written there" : "the value written here was not kept";
+      warnDeprecated(`"${key}" moved to ${to}; ${kept}.`, { since, until, once: false });
       set?.(value);
     }
   });

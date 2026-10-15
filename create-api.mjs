@@ -34,7 +34,8 @@ function mergeNamespace(target, source, path) {
  * Members of the API that the host game system may not replace when it supplies its parts.
  */
 const RESERVED = new Set([
-  "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "warnDeprecated", "modules", "mixins", "tests", "provide", "contribute"
+  "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "warnDeprecated", "modules", "mixins",
+  "tests", "provide", "contribute"
 ]);
 
 /**
@@ -92,7 +93,9 @@ export function createApi() {
       if ( RESERVED.has(namespace) || VALUES.has(namespace) ) {
         throw new Error(`contribute cannot add to the API member ${namespace}.`);
       }
-      if ( !parts || (typeof parts !== "object") ) throw new Error(`contribute("${namespace}") needs an object of parts.`);
+      if ( !parts || (typeof parts !== "object") ) {
+        throw new Error(`contribute("${namespace}") needs an object of parts.`);
+      }
       const existing = surface[namespace];
       if ( existing === undefined ) surface[namespace] = { ...parts };
       else if ( existing && (typeof existing === "object") ) mergeNamespace(existing, parts, namespace);
@@ -119,7 +122,8 @@ export function createApi() {
       if ( mixinExclusionsSetting !== undefined ) {
         // A host that still names its own setting is warned when the world is up; nothing here has the logger yet
         Hooks.once("init", () => warnDeprecated("provide({ mixinExclusionsSetting }) is ignored: the mixin "
-          + "exclusions are the enhanced-core module's world setting.", { since: { module: "0.1.0" }, until: { deps: { foundry: 15 } } }));
+          + "exclusions are the enhanced-core module's world setting.",
+        { since: { module: "0.1.0" }, until: { deps: { foundry: 15 } } }));
       }
       Object.assign(bases, mixinBases);
       surface.systemId = systemId;
@@ -146,7 +150,9 @@ export function createApi() {
  *   findConfig: Function}}
  */
 function createModuleRegistry() {
-  const registry = new Registry({ module: MODULE, id: "modules", lockingBehavior: Registry.LockingBehavior.LockAtHook });
+  const registry = new Registry({
+    module: MODULE, id: "modules", lockingBehavior: Registry.LockingBehavior.LockAtHook
+  });
   Hooks.once(registry.hook, () => {
     for ( const [id, moduleApi] of registry.entries() ) {
       const module = game.modules.get(id);

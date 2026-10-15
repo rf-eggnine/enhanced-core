@@ -174,12 +174,15 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      */
     register(target, mixin, { id, exclude=[] }={}) {
       if ( typeof target !== "string" ) throw new TypeError("mixins.register: the target must be a string.");
-      if ( typeof mixin !== "function" ) throw new TypeError(`mixins.register("${target}"): the mixin must be a function.`);
+      if ( typeof mixin !== "function" ) {
+        throw new TypeError(`mixins.register("${target}"): the mixin must be a function.`);
+      }
       const model = target.match(MODEL_TARGET);
       const named = (typeof id === "string") && MIXIN_ID.test(id);
       if ( !named ) {
         const found = (id === undefined) ? "none was given" : `got ${JSON.stringify(id)}`;
-        const message = `mixins.register("${target}"): give the mixin an id of the form "module-id:mixin-name"; ${found}.`;
+        const message = `mixins.register("${target}"): give the mixin an id of the form "module-id:mixin-name"; `
+          + `${found}.`;
         if ( model ) throw new Error(message);
         warn(message, `id:${target}:${mixin.name}`);
       } else if ( ids.has(id) && (ids.get(id) !== mixin) ) {
