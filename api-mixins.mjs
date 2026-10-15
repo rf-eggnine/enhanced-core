@@ -32,6 +32,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
   let isSetUp = false;
 
   const MODEL_TARGET = /^(\w+)\.dataModels\.(.+)$/;
+  const MIXIN_ID = /^[a-z][a-z0-9-]*(:[\w.-]+)+$/i;
   const key = (documentName, type) => `${documentName}:${type}`;
   const warn = (message, once=null) => {
     if ( once ) {
@@ -51,7 +52,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
 
   const wrapPath = (path, mixin) => {
     const base = foundry.utils.getProperty(CONFIG, path);
-    if ( typeof base !== "function" ) {
+    if ( typeof base !== "function" || !base.prototype ) {
       warn(`mixins.register("${path}"): there is no class at CONFIG.${path}; mixin not applied.`);
       return;
     }
@@ -65,7 +66,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
   /**
    * Has this mixin already been applied anywhere in the class's chain?
    * @param {Function} Class
-   * @param {string|Function} id
+   * @param {string} id
    * @returns {boolean}
    */
   const hasApplied = (Class, id) => {
@@ -83,7 +84,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
    */
   const isExcluded = (entry, type) => {
     if ( entry.exclude.has(type) ) return true;
-    return (typeof entry.id === "string") && !!exclusions()?.[entry.id]?.includes(type);
+    return !!exclusions()?.[entry.id]?.includes(type);
   };
 
   /**
@@ -138,16 +139,27 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      *                           "Actor.dataModels.*") or a dotted CONFIG path ("Token.objectClass").
      * @param {Function} mixin   `Base => class extends Base {}`.
      * @param {object} [options]
-     * @param {string} [options.id]         A stable name for this mixin ("enhanced-currency:holds-coins"). Lets a world
-     *                                      exclude it by name; without one the mixin function itself is the identity.
+     * @param {string} [options.id]         A stable, unique name for this mixin, "module-id:mixin-name"
+     *                                      ("enhanced-currency:holds-coins"). Lets a world exclude it by name and tells the
+     *                                      registry it has already been applied. Required for a data model target (an error
+     *                                      without one); any other target warns once.
      * @param {string[]} [options.exclude]  Data model types this mixin must never be applied to (for example a type
      *                                      that cannot hold coins).
      */
     register(target, mixin, { id, exclude=[] }={}) {
+      if ( typeof target !== "string" ) throw new TypeError("mixins.register: the target must be a string.");
+      if ( typeof mixin !== "function" ) throw new TypeError(`mixins.register("${target}"): the mixin must be a function.`);
       const model = target.match(MODEL_TARGET);
+      const named = (typeof id === "string") && MIXIN_ID.test(id);
+      if ( !named ) {
+        const found = (id === undefined) ? "none was given" : `got ${JSON.stringify(id)}`;
+        const message = `mixins.register("${target}"): give the mixin an id of the form "module-id:mixin-name"; ${found}.`;
+        if ( model ) throw new Error(message);
+        warn(message, `id:${target}:${mixin.name}`);
+      }
       if ( model ) {
         const [, documentName, type] = model;
-        const entry = { documentName, type, mixin, id: id ?? mixin, exclude: new Set(exclude), found: false };
+        const entry = { documentName, type, mixin, id, exclude: new Set(exclude), found: false };
         modelMixins.push(entry);
         applyEntry(entry);
         if ( isSetUp && !entry.found && (type !== "*") ) {
