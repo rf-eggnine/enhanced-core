@@ -1,5 +1,6 @@
 import { MODULE } from "./module-info.mjs";
 
+/* eslint-disable @stylistic/max-len */
 /**
  * The neutral API (docs/API.md). Generated from the contract by utils/modulize.mjs: core members are always there,
  * enhanced members are optional and must be feature-detected.
@@ -29,6 +30,7 @@ import { MODULE } from "./module-info.mjs";
  * @property {Record<string, Function>} [properties]
  * @property {Record<string, Function>} [documents]
  */
+/* eslint-enable @stylistic/max-len */
 
 /**
  * The neutral API, published by the `enhanced-core` module. Every module requires it, so it has loaded before this
