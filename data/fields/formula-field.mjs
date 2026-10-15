@@ -55,6 +55,9 @@ export default class FormulaField extends foundry.data.fields.StringField {
   /**
    * A formula keeps its `@` references: they are resolved when it is rolled, not when the effect is applied.
    * Unlike the base class this never calls `_replaceDataRefs`, so `replacementData` goes unused.
+   * @param {*} delta                           The change's value.
+   * @param {object} [replacementData]          Not used: the references are kept, not resolved.
+   * @returns {string}
    * @override
    */
   _castChangeDelta(delta, replacementData={}) {
@@ -67,6 +70,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
    * Join the delta to the formula with `+`, or with `-` when the delta starts with `-`: "1d8" and "+ 1d4" make
    * "1d8 + 1d4", "1d8" and "-2" make "1d8 - 2". Only the leading sign of the delta is taken as the operator. An empty
    * formula becomes the delta as it is.
+   * @param {string} value                      The formula so far.
+   * @param {string} delta                      The change's value, as cast by `_castChangeDelta`.
+   * @param {DataModel} model                   Not used: the result is built from `value` and `delta` alone.
+   * @param {ActiveEffectChangeData} change     Not used: nothing here depends on which effect made the change.
+   * @returns {string}
    * @override
    */
   _applyChangeAdd(value, delta, model, change) {
@@ -81,6 +89,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
   /**
    * Take the delta from the formula, in parentheses so that a delta of several terms is taken whole: "1d8" and
    * "1d4 + 1" make "1d8 - (1d4 + 1)". From an empty formula the result is the negated delta.
+   * @param {string} value                      The formula so far.
+   * @param {string} delta                      The change's value, as cast by `_castChangeDelta`.
+   * @param {DataModel} model                   Not used: the result is built from `value` and `delta` alone.
+   * @param {ActiveEffectChangeData} change     Not used: nothing here depends on which effect made the change.
+   * @returns {string}
    * @override
    */
   _applyChangeSubtract(value, delta, model, change) {
@@ -94,6 +107,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
    * Multiply the formula by the delta, each in parentheses when it has more than one term: "1d8 + 2" and "2" make
    * "(1d8 + 2) * 2". The result multiplies what the formula rolls; it does not multiply the number of dice. An empty
    * formula stays empty.
+   * @param {string} value                      The formula so far.
+   * @param {string} delta                      The change's value, as cast by `_castChangeDelta`.
+   * @param {DataModel} model                   Not used: the result is built from `value` and `delta` alone.
+   * @param {ActiveEffectChangeData} change     Not used: nothing here depends on which effect made the change.
+   * @returns {string}
    * @override
    */
   _applyChangeMultiply(value, delta, model, change) {
@@ -108,6 +126,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
   /**
    * Keep the higher of the formula and the delta: "1d8" and "3" make "max(1d8, 3)". A formula that already is one
    * `max(...)` takes the delta as a further argument. An empty formula becomes the delta.
+   * @param {string} value                      The formula so far.
+   * @param {string} delta                      The change's value, as cast by `_castChangeDelta`.
+   * @param {DataModel} model                   Not used: the result is built from `value` and `delta` alone.
+   * @param {ActiveEffectChangeData} change     Not used: nothing here depends on which effect made the change.
+   * @returns {string}
    * @override
    */
   _applyChangeUpgrade(value, delta, model, change) {
@@ -122,6 +145,11 @@ export default class FormulaField extends foundry.data.fields.StringField {
   /**
    * Keep the lower of the formula and the delta: "1d8" and "3" make "min(1d8, 3)". A formula that already is one
    * `min(...)` takes the delta as a further argument. An empty formula becomes the delta.
+   * @param {string} value                      The formula so far.
+   * @param {string} delta                      The change's value, as cast by `_castChangeDelta`.
+   * @param {DataModel} model                   Not used: the result is built from `value` and `delta` alone.
+   * @param {ActiveEffectChangeData} change     Not used: nothing here depends on which effect made the change.
+   * @returns {string}
    * @override
    */
   _applyChangeDowngrade(value, delta, model, change) {
