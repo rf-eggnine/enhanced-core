@@ -6,17 +6,20 @@ import { MODULE } from "./module-info.mjs";
  * @typedef {object} EnhancedApi
  * @property {number} version
  * @property {Record<string, any>} capabilities
- * @property {{ EnhancedDataModel: any, fields: Record<string, any>, EnhancedItemDataModel?: any, EnhancedSparseDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
- * @property {{ EnhancedApplication?: any, EnhancedApplicationV2Mixin?: any, EnhancedDialog?: any, EnhancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, ItemListsMixin?: any, BaseConfigSheet?: any, inputs?: any, headerExtensions?: any, CreateDocumentDialog?: any, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
- * @property {Function} contribute
- * @property {string} [cssNamespace]
+ * @property {any} KindRegistry
+ * @property {any} Registry
+ * @property {{ EnhancedDataModel?: any, fields: Record<string, any>, EnhancedSparseDataModel?: any, EnhancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
+ * @property {{ EnhancedApplication?: any, EnhancedApplicationV2Mixin?: any, EnhancedDialog?: any, EnhancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
  * @property {Function} deprecateMoved
- * @property {{ register: Function, get: Function, has: Function, require: Function, findConfig: Function, [key: string]: any }} modules
+ * @property {Function} warnDeprecated
+ * @property {{ register: Function, get: Function, has: Function, request: Function, require: Function, findConfig: Function, [key: string]: any }} modules
  * @property {{ register: Function, registerModel: Function, [key: string]: any }} mixins
+ * @property {Function} contribute
  * @property {{ register: Function, resetWarnings: Function, [key: string]: any }} tests
  * @property {string} [systemId]
+ * @property {string} [cssNamespace]
  * @property {Record<string, any>} [config]
- * @property {Record<string, any>} [registry]
+ * @property {{ status?: Record<string, any>, ready?: Record<string, any>, [key: string]: any }} [registry]
  * @property {Record<string, Function>} [utils]
  * @property {Record<string, Function>} [formatters]
  * @property {Record<string, Function>} [formulas]

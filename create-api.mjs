@@ -1,5 +1,5 @@
 import { createMixinRegistry } from "./api-mixins.mjs";
-import { deprecateMoved, guard, resetWarnings } from "./api-guard.mjs";
+import { deprecateMoved, guard, resetWarnings, warnDeprecated } from "./api-guard.mjs";
 import { MODULE } from "./module-info.mjs";
 import { mixinExclusions } from "./mixin-exclusions.mjs";
 import KindRegistry from "./kind-registry.mjs";
@@ -34,7 +34,7 @@ function mergeNamespace(target, source, path) {
  * Members of the API that the host game system may not replace when it supplies its parts.
  */
 const RESERVED = new Set([
-  "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "modules", "mixins", "tests", "provide", "contribute"
+  "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "warnDeprecated", "modules", "mixins", "tests", "provide", "contribute"
 ]);
 
 /**
@@ -75,6 +75,7 @@ export function createApi() {
     // Empty until a module contributes (the ui module adds the application bases): on a minimal host there are none
     applications: {},
     deprecateMoved,
+    warnDeprecated,
     modules: createModuleRegistry(),
     mixins: createMixinRegistry({ bases, exclusions }),
     tests: createTestRegistry(),
@@ -116,8 +117,8 @@ export function createApi() {
       host.systemId = systemId;
       if ( mixinExclusionsSetting !== undefined ) {
         // A host that still names its own setting is warned when the world is up; nothing here has the logger yet
-        Hooks.once("init", () => foundry.utils.logCompatibilityWarning("provide({ mixinExclusionsSetting }) is ignored: the mixin "
-          + "exclusions are the enhanced-core module's world setting.", { since: "0.1.0", until: 15, once: true }));
+        Hooks.once("init", () => warnDeprecated("provide({ mixinExclusionsSetting }) is ignored: the mixin "
+          + "exclusions are the enhanced-core module's world setting.", { since: { module: "0.1.0" }, until: { deps: { foundry: 15 } } }));
       }
       Object.assign(bases, mixinBases);
       surface.systemId = systemId;

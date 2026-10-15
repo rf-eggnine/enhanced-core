@@ -125,9 +125,29 @@ function describeVersions({ module, deps }, { withFoundry=true }={}) {
 }
 
 /**
- * Keep an old config location working while warning that it moved, via Foundry's compatibility warning. Reading it warns once for each place in the code that reads it;
- * writing it warns every time, because a value written to the old place is not read from the new one unless `set` forwards it, which is a bug to find and not noise to
- * hide.
+ * Warn that something is deprecated, through Foundry's compatibility warning (which the world's compatibility mode and patterns filter), with the versions
+ * written as `{ module?, deps? }` (see `DeprecationVersion`). Foundry's own warning states the Foundry versions; the others are said in its details.
+ * @param {string} message  What is deprecated, and what to use instead.
+ * @param {object} options
+ * @param {DeprecationVersion} options.since  When it was deprecated.
+ * @param {DeprecationVersion} options.until  When it stops working.
+ * @param {boolean} [options.once=true]  Warn once for each place in the code that reaches it (Foundry remembers the stack trace); `false` warns every time.
+ * @param {string} [options.details]  Further lines for the warning.
+ */
+export function warnDeprecated(message, { since, until, once=true, details }={}) {
+  const from = readDeprecationVersion("since", since);
+  const end = readDeprecationVersion("until", until);
+  const said = [
+    describeVersions(from, { withFoundry: false }) && `Deprecated in ${describeVersions(from, { withFoundry: false })}.`,
+    describeVersions(end, { withFoundry: false }) && `Support ends in ${describeVersions(end, { withFoundry: false })}.`,
+    details
+  ].filter(Boolean).join(" ") || undefined;
+  foundry.utils.logCompatibilityWarning(message, { since: from.deps.foundry, until: end.deps.foundry, details: said, once });
+}
+
+/**
+ * Keep an old config location working while warning that it moved, via `warnDeprecated`. Reading it warns once for each place in the code that reads it; writing it
+ * warns every time, because a value written to the old place is not read from the new one unless `set` forwards it, which is a bug to find and not noise to hide.
  * @param {object} holder            Object that used to hold the value, e.g. the system config.
  * @param {string} key               Old property name.
  * @param {object} options
@@ -138,23 +158,18 @@ function describeVersions({ module, deps }, { withFoundry=true }={}) {
  * @param {DeprecationVersion} options.until  When it stops working.
  */
 export function deprecateMoved(holder, key, { to, get, set, since, until }) {
-  const from = readDeprecationVersion("since", since);
-  const end = readDeprecationVersion("until", until);
-  // Foundry's own warning states the Foundry versions; the rest is said in its details
-  const details = [
-    describeVersions(from, { withFoundry: false }) && `Deprecated in ${describeVersions(from, { withFoundry: false })}.`,
-    describeVersions(end, { withFoundry: false }) && `Support ends in ${describeVersions(end, { withFoundry: false })}.`
-  ].filter(Boolean).join(" ") || undefined;
-  const warn = (message, once) => foundry.utils.logCompatibilityWarning(message, { since: from.deps.foundry, until: end.deps.foundry, details, once });
+  // Checked now, so that a mistake is found where the old place is defined and not where someone reads it
+  readDeprecationVersion("since", since);
+  readDeprecationVersion("until", until);
   Object.defineProperty(holder, key, {
     configurable: true,
     enumerable: false,
     get() {
-      warn(`"${key}" moved to ${to}.`, true);
+      warnDeprecated(`"${key}" moved to ${to}.`, { since, until, once: true });
       return get();
     },
     set(value) {
-      warn(`"${key}" moved to ${to}; ${set ? "the value was written there" : "the value written here was not kept"}.`, false);
+      warnDeprecated(`"${key}" moved to ${to}; ${set ? "the value was written there" : "the value written here was not kept"}.`, { since, until, once: false });
       set?.(value);
     }
   });
