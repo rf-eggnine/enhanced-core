@@ -1,6 +1,7 @@
 /**
- * Guard rails for the neutral API, in the spirit of Foundry's own compatibility warnings: misuse is reported once,
- * with a pointer to the right call, instead of failing as a bare `undefined` later.
+ * Guard rails for the neutral API, in the spirit of Foundry's own compatibility warnings: misuse is reported once
+ * in most cases, except for setting a value to a deprecated location, which is always warned. Warnings contain a
+ * pointer to the right call, instead of failing as a bare `undefined` later. 
  */
 
 const PREFIX = "Enhanced API |";
