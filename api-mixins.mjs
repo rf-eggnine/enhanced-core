@@ -12,7 +12,9 @@
  *   at `setup`. Foundry builds the canvas and its layers right after the `setup` hook, so these classes are not read
  *   before then.
  *
- * A mixin is applied at most once per class chain, so a subclass of a wrapped type does not wrap again.
+ * A mixin is applied at most once per class chain, whatever the kind of target, so a subclass of a wrapped type does
+ * not wrap again and registering the same mixin twice does not apply it twice. Its id is its identity (the mixin
+ * function itself when it has none, which warns): two different mixins may not share an id.
  * @param {object} [options]
  * @param {Record<string, Function>} [options.bases]  The host's base data model per document name ("Actor"). A
  *   `standalone` model must extend its document's base.
@@ -21,9 +23,10 @@
  * @returns {{register: Function, registerModel: Function, ready: Function, setup: Function}}
  */
 export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
-  const queued = [];
-  const pathMixins = [];
+  const queued = [];          // Document mixins waiting for `ready`: { target, mixin, id }
+  const pathMixins = [];      // CONFIG path mixins waiting for `setup`: { target, mixin, id }
   const modelMixins = [];
+  const ids = new Map();      // Mixin id to the mixin function that first used it
   const applied = new WeakMap();   // Class to the set of mixin ids it was wrapped with
   const registered = new Map();    // "Actor:npc" -> { standalone }
   const produced = new Map();      // "Actor:npc" -> the class the registry last put in CONFIG
@@ -46,17 +49,38 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
   /*  Document classes and plain CONFIG paths      */
   /* -------------------------------------------- */
 
-  const wrapDocument = (documentName, mixin) => {
-    CONFIG[documentName].documentClass = mixin(CONFIG[documentName].documentClass);
+  /**
+   * Wrap a class with a mixin, unless that mixin is already in its chain.
+   * @param {Function} base
+   * @param {Function} mixin
+   * @param {string|Function} id  The mixin's id, or the mixin itself when it has none.
+   * @returns {Function}
+   */
+  const wrapClass = (base, mixin, id) => {
+    if ( hasApplied(base, id) ) return base;
+    const wrapped = mixin(base);
+    applied.set(wrapped, new Set([id]));
+    return wrapped;
   };
 
-  const wrapPath = (path, mixin) => {
-    const base = foundry.utils.getProperty(CONFIG, path);
-    if ( typeof base !== "function" || !base.prototype ) {
-      warn(`mixins.register("${path}"): there is no class at CONFIG.${path}; mixin not applied.`);
+  const wrapDocument = ({ target, mixin, id }) => {
+    const base = CONFIG[target]?.documentClass;
+    if ( (typeof base !== "function") || !base.prototype ) {
+      warn(`mixins.register("${target}"): there is no class at CONFIG.${target}.documentClass; mixin not applied.`,
+        `class:${target}`);
       return;
     }
-    foundry.utils.setProperty(CONFIG, path, mixin(base));
+    CONFIG[target].documentClass = wrapClass(base, mixin, id);
+  };
+
+  const wrapPath = ({ target, mixin, id }) => {
+    const base = foundry.utils.getProperty(CONFIG, target);
+    if ( (typeof base !== "function") || !base.prototype ) {
+      warn(`mixins.register("${target}"): there is no class at CONFIG.${target}; mixin not applied.`,
+        `class:${target}`);
+      return;
+    }
+    foundry.utils.setProperty(CONFIG, target, wrapClass(base, mixin, id));
   };
 
   /* -------------------------------------------- */
@@ -66,7 +90,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
   /**
    * Has this mixin already been applied anywhere in the class's chain?
    * @param {Function} Class
-   * @param {string} id
+   * @param {string|Function} id  The mixin's id, or the mixin itself when it has none.
    * @returns {boolean}
    */
   const hasApplied = (Class, id) => {
@@ -140,9 +164,11 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      * @param {Function} mixin   `Base => class extends Base {}`.
      * @param {object} [options]
      * @param {string} [options.id]         A stable, unique name for this mixin, "module-id:mixin-name"
-     *                                      ("enhanced-currency:holds-coins"). Lets a world exclude it by name and tells the
-     *                                      registry it has already been applied. Required for a data model target (an error
-     *                                      without one); any other target warns once.
+     *                                      ("enhanced-currency:holds-coins"). Lets a world exclude it by name, and is
+     *                                      how the registry knows the mixin is already applied to a class. Required for
+     *                                      a data model target (an error without one); any other target warns once. Two
+     *                                      different mixins with one id are an error for a data model target and a
+     *                                      warning for the others (the later is not applied).
      * @param {string[]} [options.exclude]  Data model types this mixin must never be applied to (for example a type
      *                                      that cannot hold coins).
      */
@@ -156,7 +182,13 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
         const message = `mixins.register("${target}"): give the mixin an id of the form "module-id:mixin-name"; ${found}.`;
         if ( model ) throw new Error(message);
         warn(message, `id:${target}:${mixin.name}`);
-      }
+      } else if ( ids.has(id) && (ids.get(id) !== mixin) ) {
+        const message = `mixins.register("${target}"): the id "${id}" is already used by another mixin; `
+          + "ids must be unique.";
+        if ( model ) throw new Error(message);
+        warn(message, `duplicate:${id}`);
+      } else ids.set(id, mixin);
+      const identity = named ? id : mixin;
       if ( model ) {
         const [, documentName, type] = model;
         const entry = { documentName, type, mixin, id, exclude: new Set(exclude), found: false };
@@ -167,10 +199,14 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
             + "mixin not applied.");
         }
       } else if ( target.includes(".") ) {
-        if ( isSetUp ) wrapPath(target, mixin);
-        else pathMixins.push([target, mixin]);
-      } else if ( isReady ) wrapDocument(target, mixin);
-      else queued.push([target, mixin]);
+        const entry = { target, mixin, id: identity };
+        if ( isSetUp ) wrapPath(entry);
+        else pathMixins.push(entry);
+      } else {
+        const entry = { target, mixin, id: identity };
+        if ( isReady ) wrapDocument(entry);
+        else queued.push(entry);
+      }
     },
 
     /**
@@ -213,7 +249,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      */
     ready() {
       isReady = true;
-      for ( const [documentName, mixin] of queued.splice(0) ) wrapDocument(documentName, mixin);
+      for ( const entry of queued.splice(0) ) wrapDocument(entry);
     },
 
     /**
@@ -249,7 +285,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
             + `CONFIG.${entry.documentName}.dataModels.${entry.type}; mixin not applied.`);
         }
       }
-      for ( const [path, mixin] of pathMixins.splice(0) ) wrapPath(path, mixin);
+      for ( const entry of pathMixins.splice(0) ) wrapPath(entry);
     }
   };
 }
