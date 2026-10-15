@@ -11,7 +11,7 @@
 export default class LocalDocumentField extends foundry.data.fields.DocumentIdField {
   constructor(model, options={}) {
     if ( !foundry.utils.isSubclass(model, foundry.abstract.DataModel) ) {
-      throw new Error("A ForeignDocumentField must specify a DataModel subclass as its type");
+      throw new Error("A LocalDocumentField must specify a DataModel subclass as its type");
     }
 
     super(options);
@@ -51,7 +51,7 @@ export default class LocalDocumentField extends foundry.data.fields.DocumentIdFi
 
   /** @inheritDoc */
   _validateType(value) {
-    if ( !this.options.fallback ) super._validateType(value);
+    if ( !this.fallback ) super._validateType(value);
   }
 
   /* -------------------------------------------- */
@@ -73,14 +73,24 @@ export default class LocalDocumentField extends foundry.data.fields.DocumentIdFi
 
   /* -------------------------------------------- */
 
-  /** @override */
+  /**
+   * Unlike `ForeignDocumentField`, which passes the options on to the collection it reads, this does not use them. They
+   * are the options the owning model was built with (`strict` among them), and the lookup is lazy: a strict one would
+   * throw from the first read of a reference to an embedded document that has since been deleted. Such a reference
+   * gives `null` (or the id itself with `fallback`).
+   * @param {string} value                 The id stored in the source.
+   * @param {DataModel} model              The model that holds this field; its parents are searched for the collection.
+   * @param {object} [options]             Not used.
+   * @returns {string|null|(() => Document|string|null)}  The id, or a function that finds the document.
+   * @override
+   */
   initialize(value, model, options={}) {
-    if ( this.idOnly ) return this.options.fallback || foundry.data.validators.isValidId(value) ? value : null;
+    if ( this.idOnly ) return this.fallback || foundry.data.validators.isValidId(value) ? value : null;
     const collection = this._findCollection(model, this.model.metadata.collection);
     return () => {
       const document = collection?.get(value);
-      if ( !document ) return this.options.fallback ? value : null;
-      if ( this.options.fallback ) Object.defineProperty(document, "toString", {
+      if ( !document ) return this.fallback ? value : null;
+      if ( this.fallback ) Object.defineProperty(document, "toString", {
         value: () => document.name,
         configurable: true,
         enumerable: false
