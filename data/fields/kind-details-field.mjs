@@ -53,8 +53,8 @@ export default class KindDetailsField extends EnhancedTypedDataField {
   /**
    * The details are always cleaned with the model of the kind when it is made, whatever the document was built with.
    * Foundry builds a document that comes from the database with `clean: false`, trusting that its data was cleaned with
-   * its models when it was saved. The details of a kind may not have been: when a document is made with its kind and its
-   * details together, the kind is not yet in the data the details are cleaned against. Cleaning here fills in the
+   * its models when it was saved. The details of a kind may not have been: when a document is made with its kind and
+   * its details together, the kind is not yet in the data the details are cleaned against. Cleaning here fills in the
    * defaults of the kind's model, so such details are valid instead of failing the model's validation.
    * @inheritDoc
    */
