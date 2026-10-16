@@ -15,6 +15,11 @@
  * A mixin is applied at most once per class chain, whatever the kind of target, so a subclass of a wrapped type does
  * not wrap again and registering the same mixin twice does not apply it twice. Its id is its identity (the mixin
  * function itself when it has none, which warns): two different mixins may not share an id.
+ *
+ * A mixin that needs another one beneath it says so with `requires`, a list of mixin ids. It is applied to a class
+ * only once every one of them is in the class's chain, and waits until then, so the order of registration does not
+ * matter. Nothing is applied for it: the required mixin has to be registered too (for that target, and not excluded
+ * from the type). At `setup`, when no registration can change anything any more, a mixin still waiting is an error.
  * @param {object} [options]
  * @param {Record<string, Function>} [options.bases]  The host's base data model per document name ("Actor"). A
  *   `standalone` model must extend its document's base.
@@ -23,9 +28,10 @@
  * @returns {{register: Function, registerModel: Function, ready: Function, setup: Function}}
  */
 export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
-  const queued = [];          // Document mixins waiting for `ready`: { target, mixin, id }
-  const pathMixins = [];      // CONFIG path mixins waiting for `setup`: { target, mixin, id }
+  const documentEntries = new Map();   // Document name to the mixins not applied yet: { target, mixin, id, requires }
+  const pathEntries = new Map();       // CONFIG path to the mixins not applied yet
   const modelMixins = [];
+  const requirements = new Map();      // Mixin id to the ids it requires, over everything registered
   const ids = new Map();      // Mixin id to the mixin function that first used it
   const applied = new WeakMap();   // Class to the set of mixin ids it was wrapped with
   const registered = new Map();    // "Actor:npc" -> { standalone }
@@ -63,25 +69,51 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     return wrapped;
   };
 
-  const wrapDocument = ({ target, mixin, id }) => {
-    const base = CONFIG[target]?.documentClass;
-    if ( (typeof base !== "function") || !base.prototype ) {
-      warn(`mixins.register("${target}"): there is no class at CONFIG.${target}.documentClass; mixin not applied.`,
-        `class:${target}`);
+  /**
+   * Is everything the mixin requires already in the class's chain?
+   * @param {Function} Class
+   * @param {{requires: string[]}} entry
+   * @returns {boolean}
+   */
+  const requirementsMet = (Class, entry) => entry.requires.every(id => hasApplied(Class, id));
+
+  /**
+   * Apply the pending mixins of one class whose requirements are met, one after another, until none more can be:
+   * applying one may be what another was waiting for. What cannot be applied stays in the list.
+   * @param {object[]} entries   The pending mixins of this class, in registration order. Applied ones leave it.
+   * @param {() => Function|undefined} read   The class now.
+   * @param {(Class: Function) => void} write Put a class in its place.
+   * @param {string} where       Where the class is, for the warning when there is none.
+   */
+  const settleClass = (entries, read, write, where) => {
+    if ( !entries.length ) return;
+    const first = read();
+    if ( (typeof first !== "function") || !first.prototype ) {
+      warn(`mixins.register("${entries[0].target}"): there is no class at ${where}; mixin not applied.`,
+        `class:${where}`);
+      entries.splice(0);
       return;
     }
-    CONFIG[target].documentClass = wrapClass(base, mixin, id);
+    let progress = true;
+    while ( progress ) {
+      progress = false;
+      for ( const entry of [...entries] ) {
+        const base = read();
+        if ( !requirementsMet(base, entry) ) continue;
+        write(wrapClass(base, entry.mixin, entry.id));
+        entries.splice(entries.indexOf(entry), 1);
+        progress = true;
+      }
+    }
   };
 
-  const wrapPath = ({ target, mixin, id }) => {
-    const base = foundry.utils.getProperty(CONFIG, target);
-    if ( (typeof base !== "function") || !base.prototype ) {
-      warn(`mixins.register("${target}"): there is no class at CONFIG.${target}; mixin not applied.`,
-        `class:${target}`);
-      return;
-    }
-    foundry.utils.setProperty(CONFIG, target, wrapClass(base, mixin, id));
-  };
+  const settleDocument = documentName => settleClass(documentEntries.get(documentName) ?? [],
+    () => CONFIG[documentName]?.documentClass, Class => { CONFIG[documentName].documentClass = Class; },
+    `CONFIG.${documentName}.documentClass`);
+
+  const settlePath = path => settleClass(pathEntries.get(path) ?? [],
+    () => foundry.utils.getProperty(CONFIG, path), Class => foundry.utils.setProperty(CONFIG, path, Class),
+    `CONFIG.${path}`);
 
   /* -------------------------------------------- */
   /*  Data models                                 */
@@ -122,36 +154,100 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     (entry.documentName === documentName) && ((entry.type === "*") || (entry.type === type));
 
   /**
-   * Apply one mixin to one registered type, if it applies.
-   * @param {object} entry
+   * Apply to one registered type the mixins that target it, in registration order, those whose requirements are met,
+   * and again until none more can be: applying one may be what another was waiting for.
    * @param {string} documentName
    * @param {string} type
-   * @returns {boolean}  True when the type was found.
    */
-  const applyToType = (entry, documentName, type) => {
+  const settleType = (documentName, type) => {
     const models = CONFIG[documentName]?.dataModels;
-    const current = models?.[type];
-    if ( typeof current !== "function" ) return false;
-    entry.found = true;
-    if ( registered.get(key(documentName, type))?.standalone ) return true;
-    if ( isExcluded(entry, type) || hasApplied(current, entry.id) ) return true;
-    const wrapped = entry.mixin(current);
-    applied.set(wrapped, new Set([entry.id]));
-    models[type] = wrapped;
-    produced.set(key(documentName, type), wrapped);
-    return true;
+    if ( typeof models?.[type] !== "function" ) return;
+    const wanted = modelMixins.filter(entry => matches(entry, documentName, type));
+    for ( const entry of wanted ) entry.found = true;
+    if ( registered.get(key(documentName, type))?.standalone ) return;
+    let progress = true;
+    while ( progress ) {
+      progress = false;
+      for ( const entry of wanted ) {
+        const current = models[type];
+        if ( isExcluded(entry, type) || hasApplied(current, entry.id) || !requirementsMet(current, entry) ) continue;
+        const wrapped = entry.mixin(current);
+        applied.set(wrapped, new Set([entry.id]));
+        models[type] = wrapped;
+        produced.set(key(documentName, type), wrapped);
+        progress = true;
+      }
+    }
   };
 
   /**
-   * Apply one mixin to every matching type that exists now.
+   * Settle every type the mixin targets that exists now.
    * @param {object} entry
    */
-  const applyEntry = entry => {
+  const settleEntry = entry => {
     const models = CONFIG[entry.documentName]?.dataModels;
     if ( !models ) return;
-    if ( entry.type === "*" ) {
-      for ( const type of Object.keys(models) ) applyToType(entry, entry.documentName, type);
-    } else applyToType(entry, entry.documentName, entry.type);
+    const types = (entry.type === "*") ? Object.keys(models) : [entry.type];
+    for ( const type of types ) settleType(entry.documentName, type);
+  };
+
+  /**
+   * The mixins that wait for something they require, as lines for a message: those not applied to a class of a
+   * document, of a path, or of a data model type.
+   * @param {object} [only]  Look at this one mixin only.
+   * @returns {string[]}
+   */
+  const unmet = only => {
+    const lines = [];
+    const say = (entry, where) => {
+      const lacking = entry.requires.filter(id => !hasApplied(where.class, id));
+      lines.push(`"${entry.id}" on ${where.name} requires ${lacking.map(id => `"${id}"`).join(", ")}`);
+    };
+    for ( const [name, entries] of documentEntries ) {
+      for ( const entry of entries ) {
+        if ( !only || (only === entry) ) say(entry, { name, class: CONFIG[name]?.documentClass });
+      }
+    }
+    for ( const [path, entries] of pathEntries ) {
+      for ( const entry of entries ) {
+        if ( !only || (only === entry) ) say(entry, { name: path, class: foundry.utils.getProperty(CONFIG, path) });
+      }
+    }
+    for ( const entry of modelMixins ) {
+      if ( only && (only !== entry) ) continue;
+      const models = CONFIG[entry.documentName]?.dataModels ?? {};
+      for ( const [type, current] of Object.entries(models) ) {
+        if ( !matches(entry, entry.documentName, type) || (typeof current !== "function") ) continue;
+        if ( registered.get(key(entry.documentName, type))?.standalone ) continue;
+        if ( isExcluded(entry, type) || hasApplied(current, entry.id) || requirementsMet(current, entry) ) continue;
+        say(entry, { name: `${entry.documentName}.dataModels.${type}`, class: current });
+      }
+    }
+    return lines;
+  };
+
+  /**
+   * Fail for the mixins that can no longer get what they require.
+   * @param {string[]} lines
+   */
+  const failFor = lines => {
+    if ( !lines.length ) return;
+    throw new Error("Enhanced API | mixins: these mixins were not applied, because what they require is not applied "
+      + `to the same class: ${lines.join("; ")}.`);
+  };
+
+  /**
+   * Does the mixin, through what it requires, lead back to itself?
+   * @param {string} from  An id it requires.
+   * @param {string} id    The id of the mixin being registered.
+   * @param {Set<string>} [seen]
+   * @returns {boolean}
+   */
+  const leadsTo = (from, id, seen=new Set()) => {
+    if ( from === id ) return true;
+    if ( seen.has(from) ) return false;
+    seen.add(from);
+    return [...(requirements.get(from) ?? [])].some(next => leadsTo(next, id, seen));
   };
 
   /* -------------------------------------------- */
@@ -171,8 +267,12 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      *                                      warning for the others (the later is not applied).
      * @param {string[]} [options.exclude]  Data model types this mixin must never be applied to (for example a type
      *                                      that cannot hold coins).
+     * @param {string[]} [options.requires] Ids of the mixins that must already be applied to the class, beneath this
+     *                                      one. It waits until they are, whatever the order of registration; they have
+     *                                      to be registered for the same target. A mixin still waiting at `setup` is an
+     *                                      error, and so is one that requires itself, however indirectly.
      */
-    register(target, mixin, { id, exclude=[] }={}) {
+    register(target, mixin, { id, exclude=[], requires=[] }={}) {
       if ( typeof target !== "string" ) throw new TypeError("mixins.register: the target must be a string.");
       if ( typeof mixin !== "function" ) {
         throw new TypeError(`mixins.register("${target}"): the mixin must be a function.`);
@@ -192,28 +292,47 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
         warn(message, `duplicate:${id}`);
       } else ids.set(id, mixin);
       const identity = named ? id : mixin;
+      if ( !Array.isArray(requires) || requires.some(required => (typeof required !== "string")
+        || !MIXIN_ID.test(required)) ) {
+        throw new TypeError(`mixins.register("${target}"): requires is a list of mixin ids of the form `
+          + `"module-id:mixin-name"; got ${JSON.stringify(requires)}.`);
+      }
+      if ( named && requires.some(required => leadsTo(required, id)) ) {
+        throw new Error(`mixins.register("${target}"): "${id}" requires itself, through ${requires.join(", ")}.`);
+      }
+      if ( named ) requirements.set(id, new Set([...(requirements.get(id) ?? []), ...requires]));
       if ( model ) {
         const [, documentName, type] = model;
-        const entry = { documentName, type, mixin, id, exclude: new Set(exclude), found: false };
+        const entry = {
+          documentName, type, mixin, id, exclude: new Set(exclude), requires: [...requires], found: false
+        };
         if ( isSetUp ) {
           warn(`mixins.register("${target}"): registered after setup, when the world's documents already exist. `
             + "They keep the class they have, so the mixin reaches them unevenly. Register it during init.",
           `late:${id}`);
         }
         modelMixins.push(entry);
-        applyEntry(entry);
+        settleEntry(entry);
         if ( isSetUp && !entry.found && (type !== "*") ) {
           warn(`mixins.register("${target}"): there is no class at CONFIG.${documentName}.dataModels.${type}; `
             + "mixin not applied.");
         }
+        // After setup nothing more can be registered to satisfy it
+        if ( isSetUp ) failFor(unmet(entry));
       } else if ( target.includes(".") ) {
-        const entry = { target, mixin, id: identity };
-        if ( isSetUp ) wrapPath(entry);
-        else pathMixins.push(entry);
+        const entry = { target, mixin, id: identity, requires: [...requires] };
+        if ( !pathEntries.has(target) ) pathEntries.set(target, []);
+        pathEntries.get(target).push(entry);
+        if ( isSetUp ) {
+          settlePath(target);
+          failFor(unmet(entry));
+        }
       } else {
-        const entry = { target, mixin, id: identity };
-        if ( isReady ) wrapDocument(entry);
-        else queued.push(entry);
+        const entry = { target, mixin, id: identity, requires: [...requires] };
+        if ( !documentEntries.has(target) ) documentEntries.set(target, []);
+        documentEntries.get(target).push(entry);
+        if ( isReady ) settleDocument(target);
+        if ( isSetUp ) failFor(unmet(entry));
       }
     },
 
@@ -245,9 +364,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
         }
         return DataModel;
       }
-      for ( const entry of modelMixins ) {
-        if ( matches(entry, documentName, type) ) applyToType(entry, documentName, type);
-      }
+      settleType(documentName, type);
       return models[type];
     },
 
@@ -257,13 +374,13 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      */
     ready() {
       isReady = true;
-      for ( const entry of queued.splice(0) ) wrapDocument(entry);
+      for ( const documentName of documentEntries.keys() ) settleDocument(documentName);
     },
 
     /**
      * Called by the core module at `setup`, before any module's `setup` hook (a second call does nothing). World
      * documents already exist, so this audits and no longer applies data model mixins; it then applies the queued
-     * CONFIG path mixins.
+     * CONFIG path mixins, and throws for any mixin that is still waiting for what it requires.
      *
      * The audit covers every document with a data model mixin. A type that did not come through `registerModel`, or
      * was replaced after it did, gets a warning naming the mixins it lacks, and fixing that is the module's concern.
@@ -302,7 +419,9 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
             + `CONFIG.${entry.documentName}.dataModels.${entry.type}; mixin not applied.`);
         }
       }
-      for ( const entry of pathMixins.splice(0) ) wrapPath(entry);
+      for ( const path of pathEntries.keys() ) settlePath(path);
+      // Nothing more can be registered to satisfy what is still waiting
+      failFor(unmet());
     }
   };
 }
