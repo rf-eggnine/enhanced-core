@@ -56,6 +56,18 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
   /* -------------------------------------------- */
 
   /**
+   * Note that a mixin has been applied to a class. A mixin may hand back the class it was given (the currency mixins do
+   * for a type that cannot hold a price), so the id is added to what the class already has, not put in its place.
+   * @param {Function} Class
+   * @param {string|Function} id
+   */
+  const record = (Class, id) => {
+    const ids = applied.get(Class) ?? new Set();
+    ids.add(id);
+    applied.set(Class, ids);
+  };
+
+  /**
    * Wrap a class with a mixin, unless that mixin is already in its chain.
    * @param {Function} base
    * @param {Function} mixin
@@ -65,7 +77,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
   const wrapClass = (base, mixin, id) => {
     if ( hasApplied(base, id) ) return base;
     const wrapped = mixin(base);
-    applied.set(wrapped, new Set([id]));
+    record(wrapped, id);
     return wrapped;
   };
 
@@ -95,7 +107,10 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
       return;
     }
     let progress = true;
-    while ( progress ) {
+    // Each pass that goes on applies a mixin that was not applied, so there are never more passes than mixins
+    const limit = entries.length + 1;
+    for ( let passes = 0; progress; passes++ ) {
+      if ( passes > limit ) throw new Error(`Enhanced API | mixins: the mixins of ${where} did not settle.`);
       progress = false;
       for ( const entry of [...entries] ) {
         const base = read();
@@ -166,13 +181,16 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     for ( const entry of wanted ) entry.found = true;
     if ( registered.get(key(documentName, type))?.standalone ) return;
     let progress = true;
-    while ( progress ) {
+    for ( let passes = 0; progress; passes++ ) {
+      if ( passes > wanted.length + 1 ) {
+        throw new Error(`Enhanced API | mixins: the mixins of ${documentName} type "${type}" did not settle.`);
+      }
       progress = false;
       for ( const entry of wanted ) {
         const current = models[type];
         if ( isExcluded(entry, type) || hasApplied(current, entry.id) || !requirementsMet(current, entry) ) continue;
         const wrapped = entry.mixin(current);
-        applied.set(wrapped, new Set([entry.id]));
+        record(wrapped, entry.id);
         models[type] = wrapped;
         produced.set(key(documentName, type), wrapped);
         progress = true;
