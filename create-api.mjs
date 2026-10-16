@@ -213,7 +213,7 @@ function createModuleRegistry() {
      */
     findConfig(key, defaultValue = undefined) {
       for ( const moduleApi of registry.values() ) {
-        if ( "config" in moduleApi && key in moduleApi.config ) {
+        if ( "config" in moduleApi && Object.hasOwn(moduleApi.config, key) ) {
           if ( defaultValue !== undefined ) return moduleApi.config[key] ?? defaultValue;
           return moduleApi.config[key];
         }
