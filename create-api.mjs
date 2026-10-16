@@ -1,5 +1,5 @@
 import { createMixinRegistry } from "./api-mixins.mjs";
-import { deprecateMoved, guard, warnDeprecated } from "./api-guard.mjs";
+import { deprecateMoved, guard, resetWarnings, warnDeprecated } from "./api-guard.mjs";
 import { MODULE } from "./module-info.mjs";
 import { mixinExclusions } from "./mixin-exclusions.mjs";
 import KindRegistry from "./kind-registry.mjs";
@@ -35,7 +35,7 @@ function mergeNamespace(target, source, path) {
  */
 const RESERVED = new Set([
   "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "warnDeprecated", "modules", "mixins",
-  "provide", "contribute"
+  "tests", "provide", "contribute"
 ]);
 
 /**
@@ -79,6 +79,7 @@ export function createApi() {
     warnDeprecated,
     modules: createModuleRegistry(),
     mixins: createMixinRegistry({ bases, exclusions }),
+    tests: createTestRegistry(),
 
     /**
      * Add to a namespace of the API, such as `applications`, from a module. The parts are merged into what is there, as
@@ -232,3 +233,33 @@ function createModuleRegistry() {
     }
   };
 }
+
+/* -------------------------------------------- */
+
+/**
+ * Forward test batches to Quench when it is installed; do nothing otherwise, so modules can always register.
+ * @returns {{register: Function}}
+ */
+function createTestRegistry() {
+  const queued = [];
+  Hooks.once("quenchReady", quench => {
+    for ( const args of queued.splice(0) ) quench.registerBatch(...args);
+  });
+  return {
+    /** Forget shown API warnings so a test can assert on them again. */
+    resetWarnings,
+
+    /**
+     * Register a Quench batch.
+     * @param {string} key       Batch key, conventionally `<module id>.<name>`.
+     * @param {Function} fn      Quench batch function, receives the Quench context.
+     * @param {object} [options] Quench batch options, e.g. `displayName`.
+     */
+    register(key, fn, options={}) {
+      if ( globalThis.quench ) globalThis.quench.registerBatch(key, fn, options);
+      else queued.push([key, fn, options]);
+    }
+  };
+}
+
+/* -------------------------------------------- */
