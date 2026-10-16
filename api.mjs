@@ -10,7 +10,7 @@ import { MODULE } from "./module-info.mjs";
  * @property {any} KindRegistry
  * @property {any} Registry
  * @property {{ EnhancedDataModel?: any, fields: Record<string, any>, EnhancedSparseDataModel?: any, EnhancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
- * @property {{ EnhancedApplication?: any, EnhancedApplicationV2Mixin?: any, EnhancedDialog?: any, EnhancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
+ * @property {{ EnhancedWindowV2?: any, EnhancedWindowV2Mixin?: any, EnhancedDialog?: any, EnhancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
  * @property {Function} deprecateMoved
  * @property {Function} warnDeprecated
  * @property {{ register: Function, get: Function, has: Function, request: Function, require: Function, findConfig: Function, [key: string]: any }} modules
