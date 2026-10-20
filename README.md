@@ -144,19 +144,3 @@ registries use `<module id>.<registry id>.ready`, and the hooks of the window cl
 answers another without importing it (the dice module adds the advantage options to configuration sheets this way). The
 game system's own lifecycle hook is `<system id>.ready`. `node utils/modulize.mjs <name> --check` reports a hook a module
 fires under any other name.
-
-## Data fields
-
-`api.data.fields` starts with the fields that need nothing from a game system, which live in `data/fields/`:
-
-| Field | Is |
-|---|---|
-| `MappingField` | an object of keys to one kind of field, with initial keys and per-key labels |
-| `FormulaField` | a dice formula (optionally dice-free), with the effect-change operations |
-| `LocalDocumentField` | a reference by id to a document embedded in the same document |
-| `EnhancedTypedDataField` | an object whose model is chosen by its type, falling back to a plain object |
-
-A game system or another module can add fields to the same namespace (`provide` for the system, `contribute` for a module),
-which merges them into this module's and refuses to replace a class or function this module provides. `KindDetailsField`, the
-field that holds the data of a document's kind, is here too. Fields that come with an input element are not here: the
-identifier field and the filters field, with their inputs, are in the `enhanced-fields` module.
