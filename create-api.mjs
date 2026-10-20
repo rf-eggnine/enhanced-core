@@ -4,7 +4,6 @@ import { MODULE } from "./module-info.mjs";
 import { mixinExclusions } from "./mixin-exclusions.mjs";
 import KindRegistry from "./kind-registry.mjs";
 import Registry from "./registry.mjs";
-import * as fields from "./data/fields/_module.mjs";
 
 /**
  * Neutral, versioned contract that feature modules code against. Published as `globalThis.enhancedApi` when this module
@@ -71,9 +70,7 @@ export function createApi() {
     capabilities: {},
     Registry,
     KindRegistry,
-    // The host adds to these with `provide`; `data.fields` starts with the fields that need nothing from a game system
-    data: { fields: { ...fields } },
-    // Empty until a module contributes (the ui module adds the application bases): on a minimal host there are none
+    data: {},
     applications: {},
     deprecateMoved,
     warnDeprecated,
