@@ -15,8 +15,3 @@ globalThis.enhancedApi = createApi();
 // hook and the canvas has its classes in time.
 Hooks.once("i18nInit", () => globalThis.enhancedApi.mixins.ready());
 Hooks.once("setup", () => globalThis.enhancedApi.mixins.setup());
-
-// Mirror it on the system object, where modules and older code expect it, once Foundry has loaded the system
-Hooks.once("init", () => {
-  if ( game.system && !game.system.api ) game.system.api = globalThis.enhancedApi;
-});

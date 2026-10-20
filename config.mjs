@@ -32,7 +32,7 @@ publish({
   capabilities: api.capabilities, declare, createApi, PRECEDENCE, precedence, enhancedHasPrecedence, mixinExclusions
 });
 
-// A world setting: who has the last word where the game system and the Enhanced modules both set something
+// Register world settings
 Hooks.once("init", () => {
   registerPrecedenceSetting();
   registerMixinExclusionsSetting();

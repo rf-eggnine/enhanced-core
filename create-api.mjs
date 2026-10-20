@@ -105,26 +105,20 @@ export function createApi() {
     /**
      * Supply the game system's parts: its id, and whatever it provides (`config`, `registry`, `data`, `documents`,
      * `applications`, `utils`, ...), which are published as given. Called by the system while it loads, which is after
-     * this module and before any ordinary module. `mixinBases` is the base data model per document name, and is not
-     * published. `mixinExclusionsSetting`, which named the host's world setting of mixin exclusions, is ignored: the
-     * setting is this module's.
+     * library modules and before any ordinary module. `mixinBases` is the base data model per document name, and is
+     * not published.
      * @param {object} parts
      * @param {string} [parts.systemId]
      * @param {string} [parts.cssNamespace]  The class the system's windows and tooltips carry for its theming.
      * @param {Record<string, Function>} [parts.mixinBases]
-     * @param {string} [parts.mixinExclusionsSetting]
      * @internal
      */
-    provide({ systemId, mixinBases, mixinExclusionsSetting, ...rest }={}) {
+    provide({ systemId, mixinBases, ...rest }={}) {
       const reserved = Object.keys(rest).filter(key => RESERVED.has(key));
-      if ( reserved.length ) throw new Error(`The host cannot replace API members: ${reserved.join(", ")}.`);
-      host.systemId = systemId;
-      if ( mixinExclusionsSetting !== undefined ) {
-        // A host that still names its own setting is warned when the world is up; nothing here has the logger yet
-        Hooks.once("init", () => warnDeprecated("provide({ mixinExclusionsSetting }) is ignored: the mixin "
-          + "exclusions are the enhanced-core module's world setting.",
-        { since: { module: "0.1.0" }, until: { deps: { foundry: 15 } } }));
+      if ( reserved.length ) {
+        throw new Error(`The host cannot replace Enhanced API members: ${reserved.join(", ")}.`);
       }
+      host.systemId = systemId;
       Object.assign(bases, mixinBases);
       surface.systemId = systemId;
       for ( const [key, value] of Object.entries(rest) ) {
