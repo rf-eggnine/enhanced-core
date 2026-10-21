@@ -1,0 +1,22 @@
+{
+  "scripts": {
+    "build": "npm run build:code",
+    "build:code": "rollup module.mjs -f es -o module-compiled.mjs -p node-resolve -m --sourcemapFile module.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@foundryvtt/foundryvtt-cli": "^3.0.4",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-jsdoc": "^63.0.10",
+    "fancy-log": "^2.0.0",
+    "globals": "^17.7.0",
+    "rollup": "^4.62.2",
+    "yargs": "^18.0.0"
+  },
+  "allowScripts": {
+    "classic-level@3.0.0": true
+  }
+}
