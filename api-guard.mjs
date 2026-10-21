@@ -4,7 +4,7 @@
  * pointer to the right call, instead of failing as a bare `undefined` later.
  */
 
-const PREFIX = "Enhanced API |";
+const PREFIX = "Advanced API |";
 const warned = new Set();
 
 /**
@@ -59,7 +59,7 @@ function closest(key, candidates) {
  * Wrap an API surface so reading a member that does not exist warns once, with a suggestion.
  * Only top-level reads are checked; symbols, `then` and inherited members are ignored.
  * @template {Record<string, any>} T
- * @param {string} name    Label for messages, e.g. "enhancedApi" or a module id.
+ * @param {string} name    Label for messages, e.g. "advancedApi" or a module id.
  * @param {T} surface
  * @returns {T}
  */

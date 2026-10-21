@@ -1,3 +1,7 @@
+# Foundry modules
+module-compiled.mjs
+module-compiled.mjs.map
+
 # Dependencies
 node_modules/
 

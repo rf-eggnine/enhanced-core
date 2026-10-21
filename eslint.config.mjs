@@ -20,7 +20,7 @@ const FOUNDRY_GLOBALS = [
 ];
 
 export default defineConfig([
-  { ignores: ["node_modules/**"] },
+  { ignores: ["node_modules/**", "module-compiled.mjs"] },
   {
     languageOptions: {
       ecmaVersion: "latest",

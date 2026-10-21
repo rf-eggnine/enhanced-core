@@ -1,12 +1,12 @@
 import { createMixinRegistry } from "./api-mixins.mjs";
 import { deprecateMoved, guard, resetWarnings, warnDeprecated } from "./api-guard.mjs";
-import { MODULE } from "./module-info.mjs";
+import createModuleRegistry from "./api-module-registry.mjs";
 import { mixinExclusions } from "./mixin-exclusions.mjs";
-import KindRegistry from "./kind-registry.mjs";
-import Registry from "./registry.mjs";
+import registryParts from "./registry/_module.mjs";
+import createTestRegistry from "./api-test-registry.mjs";
 
 /**
- * Neutral, versioned contract that feature modules code against. Published as `globalThis.enhancedApi` when this module
+ * Neutral, versioned contract that feature modules code against. Published as `globalThis.advancedApi` when this module
  * loads and mirrored on `game.system.api` at init. Modules read capabilities from here instead of branching on the
  * system id.
  */
@@ -33,7 +33,7 @@ function mergeNamespace(target, source, path) {
  * Members of the API that the host game system may not replace when it supplies its parts.
  */
 const RESERVED = new Set([
-  "version", "capabilities", "Registry", "KindRegistry", "deprecateMoved", "warnDeprecated", "modules", "mixins",
+  "version", "capabilities", "registryParts", "deprecateMoved", "warnDeprecated", "modules", "mixins",
   "tests", "provide", "contribute"
 ]);
 
@@ -53,8 +53,6 @@ const VALUES = new Set(["systemId", "cssNamespace"]);
 export function createApi() {
   /** Per-document-name base data models, filled by `provide`; the mixin registry reads it each time it needs one. */
   const bases = {};
-  /** What `provide` has recorded of the host. */
-  const host = {};
 
   /**
    * Mixin exclusions a world has chosen (mixin id to the types it must not touch), from this module's world setting.
@@ -67,16 +65,15 @@ export function createApi() {
     version: API_VERSION,
     systemId: undefined,
     cssNamespace: undefined,
+    registryParts: guard("registryParts", registryParts),
     capabilities: {},
-    Registry,
-    KindRegistry,
     data: {},
     applications: {},
-    deprecateMoved,
-    warnDeprecated,
     modules: createModuleRegistry(),
     mixins: createMixinRegistry({ bases, exclusions }),
-    tests: createTestRegistry(),
+    tests: createTestRegistry(resetWarnings),
+    deprecateMoved,
+    warnDeprecated,
 
     /**
      * Add to a namespace of the API, such as `applications`, from a module. The parts are merged into what is there, as
@@ -113,11 +110,10 @@ export function createApi() {
     provide({ systemId, mixinBases, ...rest }={}) {
       const reserved = Object.keys(rest).filter(key => RESERVED.has(key));
       if ( reserved.length ) {
-        throw new Error(`The host cannot replace Enhanced API members: ${reserved.join(", ")}.`);
+        throw new Error(`The host cannot replace Advanced API members: ${reserved.join(", ")}.`);
       }
-      host.systemId = systemId;
-      Object.assign(bases, mixinBases);
       surface.systemId = systemId;
+      Object.assign(bases, mixinBases);
       for ( const [key, value] of Object.entries(rest) ) {
         if ( (typeof surface[key] === "object") && surface[key] && (typeof value === "object") && value ) {
           mergeNamespace(surface[key], value, key);
@@ -125,132 +121,5 @@ export function createApi() {
       }
     }
   };
-  return guard("enhancedApi", surface);
+  return guard("advancedApi", surface);
 }
-
-/* -------------------------------------------- */
-
-/**
- * Modules publish their own API here, and dependents read it here: no module imports another module's files.
- * Registered at module evaluation (load order follows `relationships.requires`) and mirrored on
- * `game.modules.get(id).api` at init, which is Foundry's convention. The store is a `Registry`; `require` and
- * `findConfig` read it but are not part of it. Its ready hook (`enhanced-core.modules.ready`) fires at init, after the
- * mirroring, so a listener sees every module's API. The registry is locked from then on: a module must publish while
- * it loads, and one that publishes later gets an error naming it, since its API would never be mirrored.
- * @returns {{register: Function, get: Function, has: Function, request: Function, require: Function,
- *   findConfig: Function}}
- */
-function createModuleRegistry() {
-  const registry = new Registry({
-    module: MODULE, id: "modules", lockingBehavior: Registry.LockingBehavior.LockAtHook
-  });
-  Hooks.once(registry.hook, () => {
-    for ( const [id, moduleApi] of registry.entries() ) {
-      const module = game.modules.get(id);
-      if ( module && !module.api ) module.api = moduleApi;
-    }
-  });
-  Hooks.once("init", () => registry.ready());
-  // Settles when publishing is over, after the mirroring above (its listener was added first)
-  const whenReady = new Promise(resolve => Hooks.once(registry.hook, () => resolve()));
-  return {
-    /**
-     * Publish a module's API.
-     * @param {string} id          Module id.
-     * @param {object} moduleApi   The module's public surface.
-     */
-    register(id, moduleApi) {
-      registry.register(id, guard(id, moduleApi));
-    },
-
-    /**
-     * Read another module's API, if present.
-     * @param {string} id
-     * @returns {object|undefined}
-     */
-    get(id) {
-      return registry.get(id);
-    },
-
-    /**
-     * Is another module's API present?
-     * @param {string} id
-     * @returns {boolean}
-     */
-    has(id) {
-      return registry.has(id);
-    },
-
-    /**
-     * Ask for a module's API that is optional. Unlike `get`, the answer is final: it waits until every module has
-     * published (the registry's ready hook, at init), so a module that loads later is not mistaken for an absent one.
-     * Never throws; after init it resolves at once. Use `require` for a module that is needed.
-     * @param {string} id
-     * @returns {Promise<object|undefined>}  The module's API, or undefined when it published none.
-     */
-    async request(id) {
-      if ( !registry.isReady ) await whenReady;
-      return registry.get(id);
-    },
-
-    /**
-     * Find a vocabulary by config key in any published module config (own tables first is the caller's job).
-     * The first registered module that has the key wins.
-     * @param {string} key
-     * @param {*} [defaultValue]  Returned when no module has the key, or the one that has it holds nothing (`null` or
-     *   `undefined`) there. Pass a fresh object at the call (`findConfig(key, {})`), not one kept and shared: a caller
-     *   that changes it would change it for everyone.
-     * @returns {*}
-     */
-    findConfig(key, defaultValue = undefined) {
-      for ( const moduleApi of registry.values() ) {
-        if ( "config" in moduleApi && Object.hasOwn(moduleApi.config, key) ) {
-          if ( defaultValue !== undefined ) return moduleApi.config[key] ?? defaultValue;
-          return moduleApi.config[key];
-        }
-      }
-      if ( defaultValue !== undefined ) return defaultValue;
-    },
-
-    /**
-     * Read another module's API, failing with a clear message when it is absent.
-     * @param {string} id
-     * @returns {object}
-     */
-    require(id) {
-      const moduleApi = registry.get(id);
-      if ( !moduleApi ) throw new Error(`Enhanced module "${id}" is required but has not published an API.`);
-      return moduleApi;
-    }
-  };
-}
-
-/* -------------------------------------------- */
-
-/**
- * Forward test batches to Quench when it is installed; do nothing otherwise, so modules can always register.
- * @returns {{register: Function}}
- */
-function createTestRegistry() {
-  const queued = [];
-  Hooks.once("quenchReady", quench => {
-    for ( const args of queued.splice(0) ) quench.registerBatch(...args);
-  });
-  return {
-    /** Forget shown API warnings so a test can assert on them again. */
-    resetWarnings,
-
-    /**
-     * Register a Quench batch.
-     * @param {string} key       Batch key, conventionally `<module id>.<name>`.
-     * @param {Function} fn      Quench batch function, receives the Quench context.
-     * @param {object} [options] Quench batch options, e.g. `displayName`.
-     */
-    register(key, fn, options={}) {
-      if ( globalThis.quench ) globalThis.quench.registerBatch(key, fn, options);
-      else queued.push([key, fn, options]);
-    }
-  };
-}
-
-/* -------------------------------------------- */

@@ -3,14 +3,14 @@ import { MODULE } from "./module-info.mjs";
 /* eslint-disable @stylistic/max-len */
 /**
  * The neutral API (docs/API.md). Generated from the contract by utils/modulize.mjs: core members are always there,
- * enhanced members are optional and must be feature-detected.
- * @typedef {object} EnhancedApi
+ * advanced members are optional and must be feature-detected.
+ * @typedef {object} AdvancedApi
  * @property {number} version
  * @property {Record<string, any>} capabilities
  * @property {any} KindRegistry
  * @property {any} Registry
- * @property {{ EnhancedDataModel?: any, fields: Record<string, any>, EnhancedSparseDataModel?: any, EnhancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
- * @property {{ EnhancedWindowV2?: any, EnhancedWindowV2Mixin?: any, EnhancedDialog?: any, EnhancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
+ * @property {{ AdvancedDataModel?: any, fields: Record<string, any>, AdvancedSparseDataModel?: any, AdvancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
+ * @property {{ AdvancedWindowV2?: any, AdvancedWindowV2Mixin?: any, AdvancedDialog?: any, AdvancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
  * @property {Function} deprecateMoved
  * @property {Function} warnDeprecated
  * @property {{ register: Function, get: Function, has: Function, request: Function, require: Function, findConfig: Function, [key: string]: any }} modules
@@ -33,16 +33,16 @@ import { MODULE } from "./module-info.mjs";
 /* eslint-enable @stylistic/max-len */
 
 /**
- * The neutral API, published by the `enhanced-core` module. Every module requires it, so it has loaded before this
+ * The neutral API, published by the `advanced-core` module. Every module requires it, so it has loaded before this
  * file is evaluated; without it this module cannot work, and says so instead of failing on a missing member later.
- * @returns {EnhancedApi}
+ * @returns {AdvancedApi}
  */
 function resolveApi() {
-  const host = /** @type {typeof globalThis & { enhancedApi?: EnhancedApi }} */ (globalThis);
-  if ( !host.enhancedApi ) {
-    throw new Error(`${MODULE.id} needs the enhanced-core module: enable it for this world.`);
+  const host = /** @type {typeof globalThis & { advancedApi?: AdvancedApi }} */ (globalThis);
+  if ( !host.advancedApi ) {
+    throw new Error(`${MODULE.id} needs the advanced-core module: enable it for this world.`);
   }
-  return host.enhancedApi;
+  return host.advancedApi;
 }
 
 export const api = resolveApi();

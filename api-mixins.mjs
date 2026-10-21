@@ -48,7 +48,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
       if ( warned.has(once) ) return;
       warned.add(once);
     }
-    console.warn(`Enhanced API | mixins: ${message}`);
+    console.warn(`Advanced API | mixins: ${message}`);
   };
 
   /* -------------------------------------------- */
@@ -110,7 +110,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     // Each pass that goes on applies a mixin that was not applied, so there are never more passes than mixins
     const limit = entries.length + 1;
     for ( let passes = 0; progress; passes++ ) {
-      if ( passes > limit ) throw new Error(`Enhanced API | mixins: the mixins of ${where} did not settle.`);
+      if ( passes > limit ) throw new Error(`Advanced API | mixins: the mixins of ${where} did not settle.`);
       progress = false;
       for ( const entry of [...entries] ) {
         const base = read();
@@ -183,7 +183,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
     let progress = true;
     for ( let passes = 0; progress; passes++ ) {
       if ( passes > wanted.length + 1 ) {
-        throw new Error(`Enhanced API | mixins: the mixins of ${documentName} type "${type}" did not settle.`);
+        throw new Error(`Advanced API | mixins: the mixins of ${documentName} type "${type}" did not settle.`);
       }
       progress = false;
       for ( const entry of wanted ) {
@@ -250,7 +250,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
    */
   const failFor = lines => {
     if ( !lines.length ) return;
-    throw new Error("Enhanced API | mixins: these mixins were not applied, because what they require is not applied "
+    throw new Error("Advanced API | mixins: these mixins were not applied, because what they require is not applied "
       + `to the same class: ${lines.join("; ")}.`);
   };
 
@@ -278,7 +278,7 @@ export function createMixinRegistry({ bases={}, exclusions=() => ({}) }={}) {
      * @param {Function} mixin   `Base => class extends Base {}`.
      * @param {object} [options]
      * @param {string} [options.id]         A stable, unique name for this mixin, "module-id:mixin-name"
-     *                                      ("enhanced-currency:holds-coins"). Lets a world exclude it by name, and is
+     *                                      ("advanced-currency:holds-coins"). Lets a world exclude it by name, and is
      *                                      how the registry knows the mixin is already applied to a class. Required for
      *                                      a data model target (an error without one); any other target warns once. Two
      *                                      different mixins with one id are an error for a data model target and a

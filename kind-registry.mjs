@@ -1,4 +1,16 @@
-import Registry from "./registry.mjs";
+import composeFrom from "./registry/compose-from.mjs";
+import moduleTranslationMixin from "./registry/module-translation-mixin.mjs";
+
+const Registry = moduleTranslationMixin(composeFrom({
+  removable: false,
+  identified: true,
+  awaitable: false,
+  lockable: false,
+  unique: true,
+  validated: true,
+  keyed: true,
+  choices: true
+}));
 
 /** A kind is named `<module id>.<name>`, so two modules can never claim the same one. */
 const KIND = /^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9._-]*$/;
@@ -10,7 +22,7 @@ const KIND = /^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9._-]*$/;
  *
  * ```js
  * const kinds = new api.KindRegistry({ module: MODULE, id: "meta-kinds" });
- * kinds.register("enhanced-factions.faction", { label: "FACTIONS.Faction", dataModel: FactionData });
+ * kinds.register("advanced-factions.faction", { label: "FACTIONS.Faction", dataModel: FactionData });
  * ```
  *
  * A `KindDetailsField` selects the data model of the kind a document has.
@@ -26,7 +38,9 @@ export default class KindRegistry extends Registry {
    */
   constructor({ module, id, validate, lockingBehavior }={}) {
     super({
-      module, id, lockingBehavior,
+      module,
+      id,
+      lockingBehavior,
       validate: (definition, key) => {
         if ( !KIND.test(key) ) throw new Error(`The kind "${key}" must be named <module id>.<name>.`);
         if ( (typeof definition?.label !== "string") || !definition.label ) {
@@ -37,41 +51,8 @@ export default class KindRegistry extends Registry {
           throw new Error(`The data model of the kind "${key}" must be a DataModel class.`);
         }
         validate?.(definition, key);
-      }
+      },
+      labelOf: ([value, { label }]) => ({ value, label: game.i18n.localize(label) })
     });
-  }
-
-  /* -------------------------------------------- */
-
-  /**
-   * The data model of a kind.
-   * @param {string} kind
-   * @returns {typeof foundry.abstract.DataModel|null}  Null for a kind that is not registered or has no data of its
-   *   own.
-   */
-  getModel(kind) {
-    return this.get(kind)?.dataModel ?? null;
-  }
-
-  /* -------------------------------------------- */
-
-  /**
-   * The label of a kind, in the player's language.
-   * @param {string} kind
-   * @returns {string}  Empty for a kind that is not registered.
-   */
-  label(kind) {
-    const label = this.get(kind)?.label;
-    return label ? game.i18n.localize(label) : "";
-  }
-
-  /* -------------------------------------------- */
-
-  /**
-   * The kinds as the options of a select, in the order they were registered.
-   * @returns {{ value: string, label: string }[]}
-   */
-  choices() {
-    return Array.from(this.entries(), ([value, { label }]) => ({ value, label: game.i18n.localize(label) }));
   }
 }
