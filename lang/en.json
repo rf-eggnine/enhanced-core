@@ -2,5 +2,9 @@
   "SETTINGS.ADVANCED_CORE.PRECEDENCE.Name": "Precedence",
   "SETTINGS.ADVANCED_CORE.PRECEDENCE.Hint": "Who has the last word where the game system and the Advanced modules both set the same thing, such as a class or a rule. The game system's own choices are kept by default; the Advanced modules take over what they can when the other is chosen. Reload to apply.",
   "SETTINGS.ADVANCED_CORE.PRECEDENCE.Host": "The game system's",
-  "SETTINGS.ADVANCED_CORE.PRECEDENCE.Advanced": "The Advanced modules'"
+  "SETTINGS.ADVANCED_CORE.PRECEDENCE.Advanced": "The Advanced modules'",
+  "SETTINGS.ADVANCED_CORE.WATCH.Name": "Warn about changes to Foundry's registries",
+  "SETTINGS.ADVANCED_CORE.WATCH.Hint": "Warn in the console when a module or system replaces or deletes something another one put in CONFIG. Nothing is blocked or changed.",
+  "SETTINGS.ADVANCED_CORE.WATCHLOG.Name": "Log every change to Foundry's registries",
+  "SETTINGS.ADVANCED_CORE.WATCHLOG.Hint": "Print each write to CONFIG with who made it, to find the writes Foundry itself makes. Noisy; for developers."
 }

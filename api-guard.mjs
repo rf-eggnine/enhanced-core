@@ -11,7 +11,7 @@ const warned = new Set();
  * Warn once per message.
  * @param {string} message
  */
-function warnOnce(message) {
+export function warnOnce(message) {
   if ( warned.has(message) ) return;
   warned.add(message);
   console.warn(`${PREFIX} ${message}`);

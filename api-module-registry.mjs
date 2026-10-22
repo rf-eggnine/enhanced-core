@@ -7,9 +7,10 @@ import { LockingBehavior } from "./registry/lockable-registry-mixin.mjs";
  * Modules publish their own API here, and dependents read it here: no module imports another module's files.
  * Registered at module evaluation (load order follows `relationships.requires`) and mirrored on
  * `game.modules.get(id).api` at init, which is Foundry's convention. The store is a `Registry`; `require` and
- * `findConfig` read it but are not part of it. Its ready hook (`advanced-core.modules.ready`) fires at init, after the
- * mirroring, so a listener sees every module's API. The registry is locked from then on: a module must publish while
- * it loads, and one that publishes later gets an error naming it, since its API would never be mirrored.
+ * `findConfig` read it but are not part of it. Its ready hook (`aaaadvanced-core.modules.ready`) fires at init, after
+ * the mirroring, so a listener sees every module's API. The registry is locked from then on: a module must publish
+ * while it loads, and one that publishes later gets an error naming it, since its API would never be mirrored. A module
+ * that publishes the same id again with a different API warns.
  * @returns {{register: Function, get: Function, has: Function, request: Function, require: Function,
  *   findConfig: Function}}
  */
@@ -24,7 +25,8 @@ export default function createModuleRegistry() {
   const registry = new Registry({
     namespace: MODULE.id,
     name: "modules",
-    lockingBehavior: LockingBehavior.LockAtHook
+    lockingBehavior: LockingBehavior.LockAtHook,
+    onDuplicate: "warn"
   });
   Hooks.once(registry.hook, () => {
     for ( const [id, moduleApi] of registry.entries() ) {
@@ -68,8 +70,8 @@ export default function createModuleRegistry() {
      * @param {string} id
      * @returns {Promise<object|undefined>}  The module's API, or undefined when it published none.
      */
-    async request(id) {
-      return await registry.request(id);
+    request(id) {
+      return registry.request(id);
     },
 
     /**

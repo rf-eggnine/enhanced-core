@@ -7,15 +7,15 @@ import { MODULE } from "./module-info.mjs";
  * @typedef {object} AdvancedApi
  * @property {number} version
  * @property {Record<string, any>} capabilities
- * @property {any} KindRegistry
- * @property {any} Registry
+ * @property {any} registryParts
  * @property {{ AdvancedDataModel?: any, fields: Record<string, any>, AdvancedSparseDataModel?: any, AdvancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
  * @property {{ AdvancedWindowV2?: any, AdvancedWindowV2Mixin?: any, AdvancedDialog?: any, AdvancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
  * @property {Function} deprecateMoved
  * @property {Function} warnDeprecated
  * @property {{ register: Function, get: Function, has: Function, request: Function, require: Function, findConfig: Function, [key: string]: any }} modules
  * @property {{ register: Function, registerModel: Function, [key: string]: any }} mixins
- * @property {Function} contribute
+ * @property {Function} moduleProvides
+ * @property {Function} systemProvides
  * @property {{ register: Function, resetWarnings: Function, [key: string]: any }} tests
  * @property {string} [systemId]
  * @property {string} [cssNamespace]

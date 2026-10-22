@@ -2,6 +2,7 @@ import "./bootstrap.mjs";
 import { api, publish } from "./api.mjs";
 import { createApi } from "./create-api.mjs";
 import { mixinExclusions, registerMixinExclusionsSetting } from "./mixin-exclusions.mjs";
+import { watch, registerWatchSettings } from "./foundry-watch-install.mjs";
 import { advancedHasPrecedence, PRECEDENCE, precedence, registerPrecedenceSetting } from "./precedence.mjs";
 
 /**
@@ -19,7 +20,7 @@ import { advancedHasPrecedence, PRECEDENCE, precedence, registerPrecedenceSettin
  */
 
 /**
- * Declare capabilities. Later declarations replace earlier ones with the same key.
+ * Declare capabilities. A later declaration replaces an earlier one with the same key, and warns.
  * @param {Record<string, any>} capabilities
  * @returns {Record<string, any>}  The capabilities object on the API.
  */
@@ -29,11 +30,13 @@ function declare(capabilities) {
 
 // `createApi` builds an API of its own, which the tests use to try the composition without touching the live one
 publish({
-  capabilities: api.capabilities, declare, createApi, PRECEDENCE, precedence, advancedHasPrecedence, mixinExclusions
+  capabilities: api.capabilities, declare, createApi, PRECEDENCE, precedence, advancedHasPrecedence, mixinExclusions,
+  watch: { register: watch.register, report: watch.report }
 });
 
 // Register world settings
 Hooks.once("init", () => {
   registerPrecedenceSetting();
   registerMixinExclusionsSetting();
+  registerWatchSettings();
 });
