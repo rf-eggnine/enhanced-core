@@ -35,8 +35,8 @@ does this. Reload to apply a change. It is one setting for all the modules for n
 ## Mixin exclusions
 
 The world setting `mixinExclusions` (`advanced-core.mixinExclusions`, kept out of the settings screen) lists the mixins a world has opted
-out of, `{ "<mixin id>": ["<type>", ...] }`. The mixin registry, which is this module's, reads it as each mixin is applied. A host that
-still passes `mixinExclusionsSetting` to `provide` is warned and ignored.
+out of, `{ "<mixin id>": ["<type>", ...] }`. The mixin registry, which is this module's, reads it as each mixin is applied. A host has no
+option for it: a key `systemProvides` does not know is published as a member of the API, like any other.
 
 ## The API layer
 

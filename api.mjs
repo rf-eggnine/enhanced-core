@@ -8,7 +8,7 @@ import { MODULE } from "./module-info.mjs";
  * @property {number} version
  * @property {Record<string, any>} capabilities
  * @property {any} registryParts
- * @property {{ AdvancedDataModel?: any, fields: Record<string, any>, AdvancedSparseDataModel?: any, AdvancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
+ * @property {{ AdvancedSystemDataModel?: any, fields: Record<string, any>, AdvancedSparseDataModel?: any, AdvancedItemDataModel?: any, SelectChoices?: any, Scaling?: any, [key: string]: any }} data
  * @property {{ AdvancedWindowV2?: any, AdvancedWindowV2Mixin?: any, AdvancedDialog?: any, AdvancedDocumentSheet?: any, DragDropApplicationMixin?: any, PrimarySheetMixin?: any, BaseConfigSheet?: any, BaseSettingsConfig?: any, tooltips?: Record<string, any>, CreateDocumentDialog?: any, headerExtensions?: Record<string, any>, inputs?: Record<string, any>, PseudoDocumentSheet?: any, FixedPositionContextMenu?: any, [key: string]: any }} applications
  * @property {Function} deprecateMoved
  * @property {Function} warnDeprecated

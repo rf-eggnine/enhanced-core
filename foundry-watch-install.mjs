@@ -61,4 +61,12 @@ export function registerWatchSettings() {
     default: false
   });
   settingsReady = true;
+
+  // Writes before this point were recorded but could not be logged, as the setting was not readable yet
+  const earlier = watch.report();
+  if ( earlier.length && read(WATCH_LOG_SETTING, false) ) {
+    console.groupCollapsed(`Advanced watch | ${earlier.length} writes to CONFIG before init`);
+    for ( const { op, path, owner, previous } of earlier ) console.info(`${op} ${path} by ${owner}`, { previous });
+    console.groupEnd();
+  }
 }

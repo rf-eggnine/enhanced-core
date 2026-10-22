@@ -1,4 +1,4 @@
-import { createMixinRegistry } from "./api-mixins.mjs";
+import { createMixinRegistry } from "./api-mixins-registry.mjs";
 import { deprecateMoved, guard, resetWarnings, warnDeprecated } from "./api-guard.mjs";
 import createModuleRegistry from "./api-module-registry.mjs";
 import { createSurface } from "./api-surface.mjs";
@@ -53,9 +53,10 @@ export function createApi() {
   function systemProvides({ systemId, cssNamespace, mixinBases, ...rest }={}) {
     if (systemId === undefined) throw new Error("The systemId may not be undefined.");
     if (api.systemId !== undefined) throw new Error("The method systemProvides can only be called once.");
+    // The parts first: a call that names a member the API owns throws before anything is set, so it can be retried
+    surface.integrateCoreParts(rest);
     api.systemId = systemId;
     if ( cssNamespace !== undefined ) api.cssNamespace = cssNamespace;
-    surface.integrateCoreParts(rest);
     Object.assign(bases, mixinBases);
   }
 

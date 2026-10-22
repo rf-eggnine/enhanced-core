@@ -45,13 +45,16 @@ export function ownerFromStack(stack=new Error().stack) {
 }
 
 /**
- * A matcher for the exceptions: a string that may end in `*` for a prefix.
+ * A matcher for the exceptions: a string in which `*` stands for any run of characters, so `CONFIG.*.dataModels.*`
+ * matches the data models of every document name.
  * @param {string} pattern
  * @returns {(value: string) => boolean}
  */
 function matcher(pattern) {
-  if ( pattern === "*" ) return () => true;
-  return pattern.endsWith("*") ? value => value.startsWith(pattern.slice(0, -1)) : value => value === pattern;
+  if ( !pattern.includes("*") ) return value => value === pattern;
+  const source = pattern.split("*").map(part => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+  const regex = new RegExp(`^${source}$`);
+  return value => regex.test(value);
 }
 
 /**
@@ -99,8 +102,8 @@ export function createWatch(root, {
     const recorded = owners.get(path);
     const previous = recorded ? recorded.owner : (had ? PREEXISTING : null);
     const event = { op, path, owner, previous };
-    if ( events.length < 500 ) events.push(event);
-    if ( log() ) console.debug(`Advanced watch | ${op} ${path} by ${owner}`, { previous, old, value });
+    if ( events.length < 5000 ) events.push(event);
+    if ( log() ) console.info(`Advanced watch | ${op} ${path} by ${owner}`, { previous, old, value });
     if ( op === "delete" ) owners.register(path, { owner: null });
     else if ( op === "replace" || !had || !Object.is(old, value) ) owners.register(path, { owner });
     const changed = had && ((op === "delete") || !Object.is(old, value));
@@ -128,6 +131,8 @@ export function createWatch(root, {
    */
   function wrap(target, path, level) {
     if ( !isWrappable(target) || (level > depth) ) return target;
+    // One of our own proxies, stored raw by a setter of Foundry's (`CONFIG.statusEffects = saved`), is already wrapped
+    if ( targets.has(target) ) return target;
     const known = proxies.get(target);
     if ( known ) return known;
     const proxy = new Proxy(target, {
@@ -233,7 +238,7 @@ export function createWatch(root, {
     register,
     owners,
     /**
-     * The writes seen so far, newest last (the first 500).
+     * The writes seen so far, newest last (the first 5000).
      * @returns {{ op: string, path: string, owner: string, previous: string|null }[]}
      */
     report: () => events.slice()
